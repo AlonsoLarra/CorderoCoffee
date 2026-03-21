@@ -1,100 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { COPY } from "@/lib/copy";
-
-function LambIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 200 220"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden
-    >
-      {/* Body — organic fluffy curve, not a geometric ellipse */}
-      <path
-        d="M 48 92 C 44 74 58 60 82 57 C 106 54 126 62 132 78 C 138 94 130 116 110 124 C 90 132 62 128 48 114 C 36 102 40 96 48 92 Z"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinejoin="round"
-      />
-      {/* Neck */}
-      <path
-        d="M 126 78 C 130 68 132 60 130 52"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      {/* Head */}
-      <path
-        d="M 130 52 C 128 40 138 32 150 36 C 162 40 166 54 158 64 C 150 74 136 73 130 64 C 128 60 128 56 130 52 Z"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinejoin="round"
-      />
-      {/* Left ear */}
-      <path
-        d="M 136 38 C 130 26 138 18 144 30"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Right ear */}
-      <path
-        d="M 150 34 C 152 22 162 24 156 36"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {/* Eye */}
-      <circle cx="150" cy="50" r="3" fill="currentColor" />
-      {/* Muzzle */}
-      <path
-        d="M 158 60 C 162 64 160 70 155 70"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-      {/* Front right leg — slightly raised/forward for walking pose */}
-      <path
-        d="M 108 122 C 108 136 106 152 104 168"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      {/* Front left leg */}
-      <path
-        d="M 94 126 C 94 140 94 156 94 172"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      {/* Back right leg */}
-      <path
-        d="M 70 126 C 68 140 66 156 64 170"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      {/* Back left leg */}
-      <path
-        d="M 56 120 C 53 134 50 150 48 164"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-      />
-      {/* Tail */}
-      <path
-        d="M 48 88 C 38 78 36 66 44 60"
-        stroke="currentColor"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
 
 export default function PublicHomePage() {
   return (
@@ -133,21 +40,17 @@ export default function PublicHomePage() {
           />
         </div>
 
-        {/* Brand lockup — vertical logo as in brand manual */}
-        <div className="mb-12 flex flex-col items-center">
-          <LambIcon className="mb-5 h-20 w-20 text-cordero-espresso sm:h-24 sm:w-24" />
-
-          <p
-            className="font-heading text-5xl font-bold uppercase leading-none tracking-[0.06em] text-cordero-espresso sm:text-6xl md:text-7xl"
-          >
-            Cordero
-          </p>
-          <p
-            className="mt-2 font-heading text-[11px] font-semibold uppercase tracking-[0.52em]"
-            style={{ color: "hsl(22 38% 18% / 0.6)" }}
-          >
-            Coffee Club
-          </p>
+        {/* Official brand lockup — vertical logo from brand files */}
+        <div className="mb-12 w-52 sm:w-64 md:w-72">
+          <Image
+            src="/logo-secundario-oscuro.svg"
+            alt="Cordero Coffee Club"
+            width={677}
+            height={736}
+            priority
+            unoptimized
+            className="h-auto w-full"
+          />
         </div>
 
         {/* Thin rule */}
@@ -270,8 +173,17 @@ export default function PublicHomePage() {
       {/* ── MANIFESTO ──────────────────────────────────────────── */}
       <section className="bg-cordero-espresso px-6 py-28 sm:px-14">
         <div className="mx-auto max-w-3xl text-center">
-          {/* Lamb icon inverted */}
-          <LambIcon className="mx-auto mb-10 h-14 w-14 text-cordero-cream opacity-25" />
+          {/* Official lamb icon — cream version on dark bg */}
+          <div className="mx-auto mb-10 h-14 w-14 opacity-30">
+            <Image
+              src="/icono-crema.svg"
+              alt=""
+              width={621}
+              height={736}
+              className="h-full w-full"
+              unoptimized
+            />
+          </div>
           <p className="font-heading text-3xl leading-[1.35] text-cordero-cream sm:text-4xl md:text-[2.75rem]">
             &ldquo;Un café bien hecho,
             <br />
