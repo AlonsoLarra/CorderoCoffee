@@ -1,7 +1,98 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { COPY } from "@/lib/copy";
+
+function LambIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 100 112"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden
+    >
+      {/* Body */}
+      <ellipse
+        cx="50"
+        cy="60"
+        rx="27"
+        ry="20"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      {/* Neck */}
+      <path
+        d="M 66 44 Q 69 47 71 52"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      {/* Head */}
+      <ellipse
+        cx="76"
+        cy="37"
+        rx="11"
+        ry="9"
+        stroke="currentColor"
+        strokeWidth="2.4"
+      />
+      {/* Left ear */}
+      <path
+        d="M 68 29 Q 64 21 71 25"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Right ear */}
+      <path
+        d="M 81 27 Q 86 19 83 27"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Eye */}
+      <circle cx="79" cy="36" r="1.8" fill="currentColor" />
+      {/* Front leg left */}
+      <path
+        d="M 61 78 L 59 98"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      {/* Front leg right */}
+      <path
+        d="M 67 79 L 69 99"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      {/* Back leg left */}
+      <path
+        d="M 37 77 L 34 97"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      {/* Back leg right */}
+      <path
+        d="M 43 78 L 43 98"
+        stroke="currentColor"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+      />
+      {/* Tail */}
+      <path
+        d="M 24 57 Q 15 50 21 43"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
 
 export default function PublicHomePage() {
   return (
@@ -35,44 +126,46 @@ export default function PublicHomePage() {
             className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               background:
-                "radial-gradient(circle, hsl(35 27% 87% / 0.65), transparent 70%)",
+                "radial-gradient(circle, hsl(35 27% 87% / 0.7), transparent 70%)",
             }}
           />
         </div>
 
-        {/* Logo */}
-        <div className="mb-14 w-52 sm:w-64 md:w-72">
-          <Image
-            src="/logo.png"
-            alt="Cordero Coffee Club"
-            width={480}
-            height={320}
-            priority
-            className="h-auto w-full object-contain mix-blend-multiply"
-            style={{
-              maskImage:
-                "radial-gradient(ellipse at center, black 52%, transparent 86%)",
-              WebkitMaskImage:
-                "radial-gradient(ellipse at center, black 52%, transparent 86%)",
-            }}
-          />
+        {/* Brand lockup — vertical logo as in brand manual */}
+        <div className="mb-12 flex flex-col items-center">
+          <LambIcon className="mb-5 h-20 w-20 text-cordero-espresso sm:h-24 sm:w-24" />
+
+          <p
+            className="font-heading text-5xl font-bold uppercase leading-none tracking-[0.06em] text-cordero-espresso sm:text-6xl md:text-7xl"
+          >
+            Cordero
+          </p>
+          <p
+            className="mt-2 font-heading text-[11px] font-semibold uppercase tracking-[0.52em]"
+            style={{ color: "hsl(22 38% 18% / 0.6)" }}
+          >
+            Coffee Club
+          </p>
         </div>
 
         {/* Thin rule */}
         <div
-          className="mb-10 h-px w-12"
-          style={{ background: "hsl(22 38% 18% / 0.16)" }}
+          className="mb-8 h-px w-12"
+          style={{ background: "hsl(22 38% 18% / 0.14)" }}
         />
 
-        {/* Headline */}
-        <h1 className="font-heading max-w-xl text-balance text-4xl leading-[1.2] text-cordero-espresso sm:text-5xl md:text-[3.25rem]">
+        {/* Tagline */}
+        <h1
+          className="font-heading max-w-md text-balance text-2xl leading-[1.3] sm:text-3xl"
+          style={{ color: "hsl(22 38% 18% / 0.82)" }}
+        >
           {COPY.brand.tagline}
         </h1>
 
         {/* Subheading */}
         <p
-          className="mx-auto mt-6 max-w-sm text-balance text-base leading-relaxed sm:text-lg"
-          style={{ color: "hsl(22 38% 18% / 0.52)" }}
+          className="mx-auto mt-5 max-w-sm text-balance text-base leading-relaxed"
+          style={{ color: "hsl(22 38% 18% / 0.48)" }}
         >
           {COPY.brand.intro}
         </p>
@@ -175,6 +268,8 @@ export default function PublicHomePage() {
       {/* ── MANIFESTO ──────────────────────────────────────────── */}
       <section className="bg-cordero-espresso px-6 py-28 sm:px-14">
         <div className="mx-auto max-w-3xl text-center">
+          {/* Lamb icon inverted */}
+          <LambIcon className="mx-auto mb-10 h-14 w-14 text-cordero-cream opacity-25" />
           <p className="font-heading text-3xl leading-[1.35] text-cordero-cream sm:text-4xl md:text-[2.75rem]">
             &ldquo;Un café bien hecho,
             <br />
