@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-cream: 40 38% 96%;
+  --color-espresso: 22 38% 18%;
+  --color-terracotta: 19 47% 47%;
+  --color-olive: 96 18% 40%;
+  --color-sand: 35 27% 87%;
+  --color-card: 42 33% 98%;
+  --color-card-foreground: 22 38% 18%;
+  --color-border: 34 21% 77%;
+  --radius-md: 0.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-cream: 24 26% 10%;
+    --color-espresso: 34 26% 88%;
+    --color-terracotta: 20 58% 62%;
+    --color-olive: 95 22% 62%;
+    --color-sand: 26 15% 28%;
+    --color-card: 24 22% 14%;
+    --color-card-foreground: 34 26% 88%;
+    --color-border: 26 13% 34%;
+  }
+}
+
+body {
+  font-family: var(--font-body), sans-serif;
+  background:
+    radial-gradient(circle at 12% 18%, hsl(var(--color-sand) / 0.6), transparent 32%),
+    radial-gradient(circle at 88% 6%, hsl(var(--color-terracotta) / 0.18), transparent 28%),
+    hsl(var(--color-cream));
+  color: hsl(var(--color-espresso));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-cordero-espresso {
+    color: hsl(var(--color-espresso));
+  }
+
+  .text-cordero-cream {
+    color: hsl(var(--color-cream));
+  }
+
+  .bg-cordero-cream {
+    background-color: hsl(var(--color-cream));
+  }
+
+  .bg-cordero-espresso {
+    background-color: hsl(var(--color-espresso));
+  }
+
+  .bg-cordero-card {
+    background-color: hsl(var(--color-card));
+  }
+
+  .border-cordero {
+    border-color: hsl(var(--color-border));
+  }
+
+  .font-heading {
+    font-family: var(--font-heading), serif;
+  }
+}

@@ -1,0 +1,315 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+import { useToast } from "@/components/ui/toast-provider";
+import type { MenuCategoryWithItems, MenuItemLite } from "@/lib/services/menu";
+import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types/checkout";
+import type { PaymentMethod, PickupType } from "@/lib/types/domain";
+
+type CartLine = {
+  itemId: string;
+  itemName: string;
+  unitPrice: number;
+  quantity: number;
+};
+
+type DraftCartProps = {
+  categories: MenuCategoryWithItems[];
+};
+
+const STORAGE_KEY = "cordero.draftCart.v1";
+
+function loadCartLines(): CartLine[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw) as CartLine[];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed;
+  } catch {
+    return [];
+  }
+}
+
+function saveCartLines(lines: CartLine[]): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+}
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function DraftCart({ categories }: DraftCartProps) {
+  const { showToast } = useToast();
+  const [lines, setLines] = useState<CartLine[]>([]);
+  const [pickupType, setPickupType] = useState<PickupType>("ahora");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [scheduledPickupAt, setScheduledPickupAt] = useState("");
+  const [notes, setNotes] = useState("");
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setLines(loadCartLines());
+  }, []);
+
+  useEffect(() => {
+    saveCartLines(lines);
+  }, [lines]);
+
+  const allItems = useMemo(() => {
+    return categories.flatMap((category) => category.items);
+  }, [categories]);
+
+  const total = useMemo(() => {
+    return lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
+  }, [lines]);
+
+  function addItem(item: MenuItemLite) {
+    setLines((current) => {
+      const existing = current.find((line) => line.itemId === item.id);
+      if (existing) {
+        return current.map((line) =>
+          line.itemId === item.id ? { ...line, quantity: line.quantity + 1 } : line,
+        );
+      }
+
+      return [
+        ...current,
+        {
+          itemId: item.id,
+          itemName: item.name,
+          unitPrice: item.price,
+          quantity: 1,
+        },
+      ];
+    });
+  }
+
+  function updateQuantity(itemId: string, nextQuantity: number) {
+    setLines((current) => {
+      if (nextQuantity <= 0) {
+        return current.filter((line) => line.itemId !== itemId);
+      }
+
+      return current.map((line) =>
+        line.itemId === itemId ? { ...line, quantity: nextQuantity } : line,
+      );
+    });
+  }
+
+  async function submitOrder() {
+    if (lines.length === 0 || isSubmitting) {
+      return;
+    }
+
+    setCheckoutError(null);
+    setIsSubmitting(true);
+
+    const payload: CreateOrderRequest = {
+      lines: lines.map((line) => ({
+        itemId: line.itemId,
+        quantity: line.quantity,
+      })),
+      pickupType,
+      paymentMethod,
+      notes,
+      scheduledPickupAt: pickupType === "agendar" ? scheduledPickupAt : undefined,
+    };
+
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json()) as { error?: string };
+        throw new Error(body.error ?? "No pudimos crear tu pedido.");
+      }
+
+      const body = (await response.json()) as CreateOrderResponse;
+
+      setLines([]);
+      setNotes("");
+      setScheduledPickupAt("");
+      setPickupType("ahora");
+      setPaymentMethod("cash");
+      window.localStorage.removeItem(STORAGE_KEY);
+      showToast("Pedido creado correctamente.", "success");
+
+      window.location.href = `/pedido/confirmacion?orderId=${encodeURIComponent(body.orderId)}`;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No pudimos crear tu pedido. Intenta de nuevo.";
+      setCheckoutError(message);
+      showToast(message, "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="mt-8 grid gap-8 lg:grid-cols-[2fr_1fr]">
+      <section className="space-y-6">
+        {categories.map((category) => (
+          <div key={category.id} className="rounded-2xl border border-cordero bg-cordero-card p-5">
+            <h2 className="font-heading text-2xl text-cordero-espresso">{category.name}</h2>
+
+            <ul className="mt-4 space-y-3">
+              {category.items.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-3 rounded-xl border border-cordero px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-cordero-espresso">{item.name}</p>
+                    {item.description ? (
+                      <p className="mt-1 text-xs text-cordero-espresso opacity-75">{item.description}</p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm text-cordero-espresso">{formatPrice(item.price)}</span>
+                    <button
+                      className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
+                      onClick={() => addItem(item)}
+                      type="button"
+                    >
+                      Agregar
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </section>
+
+      <aside className="h-fit rounded-2xl border border-cordero bg-cordero-card p-5">
+        <h2 className="font-heading text-2xl text-cordero-espresso">Carrito draft</h2>
+        <p className="mt-1 text-xs text-cordero-espresso opacity-75">
+          Persistencia local para modo invitado mientras conectamos checkout.
+        </p>
+
+        <ul className="mt-4 space-y-3">
+          {lines.length === 0 ? (
+            <li className="text-sm text-cordero-espresso opacity-75">Aun no agregas productos.</li>
+          ) : (
+            lines.map((line) => (
+              <li key={line.itemId} className="rounded-xl border border-cordero px-3 py-2">
+                <p className="text-sm text-cordero-espresso">{line.itemName}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="rounded-full border border-cordero px-2 text-xs"
+                      onClick={() => updateQuantity(line.itemId, line.quantity - 1)}
+                      type="button"
+                    >
+                      -
+                    </button>
+                    <span className="text-sm">{line.quantity}</span>
+                    <button
+                      className="rounded-full border border-cordero px-2 text-xs"
+                      onClick={() => updateQuantity(line.itemId, line.quantity + 1)}
+                      type="button"
+                    >
+                      +
+                    </button>
+                  </div>
+                  <span className="text-sm">{formatPrice(line.unitPrice * line.quantity)}</span>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+
+        <div className="mt-5 border-t border-cordero pt-4">
+          <label className="block text-xs font-medium">Retiro</label>
+          <select
+            className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+            onChange={(event) => setPickupType(event.target.value as PickupType)}
+            value={pickupType}
+          >
+            <option value="ahora">Ahora</option>
+            <option value="agendar">Agendar</option>
+            <option value="al_llegar">Al llegar</option>
+          </select>
+
+          {pickupType === "agendar" ? (
+            <>
+              <label className="mt-3 block text-xs font-medium">Fecha y hora de retiro</label>
+              <input
+                className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                min={new Date().toISOString().slice(0, 16)}
+                onChange={(event) => setScheduledPickupAt(event.target.value)}
+                type="datetime-local"
+                value={scheduledPickupAt}
+              />
+            </>
+          ) : null}
+
+          <label className="mt-3 block text-xs font-medium">Pago</label>
+          <select
+            className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+            onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
+            value={paymentMethod}
+          >
+            <option value="cash">Efectivo</option>
+            <option value="card_pending">Tarjeta al retirar</option>
+          </select>
+
+          <label className="mt-3 block text-xs font-medium">Notas (opcional)</label>
+          <textarea
+            className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Sin azucar, leche de avena, etc."
+            rows={3}
+            value={notes}
+          />
+
+          <div className="flex items-center justify-between text-sm font-medium">
+            <span>Total estimado</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+
+          {checkoutError ? (
+            <p className="mt-3 text-xs text-cordero-espresso opacity-80">{checkoutError}</p>
+          ) : null}
+
+          <button
+            className="mt-4 w-full rounded-full border border-cordero px-4 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={lines.length === 0 || isSubmitting}
+            onClick={submitOrder}
+            type="button"
+          >
+            {isSubmitting ? "Creando pedido..." : "Confirmar pedido"}
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-cordero-espresso opacity-70">Items cargados: {allItems.length}</p>
+      </aside>
+    </div>
+  );
+}
