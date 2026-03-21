@@ -5,61 +5,222 @@ import { COPY } from "@/lib/copy";
 
 export default function PublicHomePage() {
   return (
-    <main className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col items-center justify-center overflow-hidden px-6 py-12 sm:px-10 sm:py-16">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(120,90,72,0.14),transparent_33%),radial-gradient(circle_at_85%_12%,rgba(66,38,24,0.08),transparent_28%),radial-gradient(circle_at_50%_70%,rgba(255,255,255,0.56),transparent_42%)]" />
-        <div className="absolute left-1/2 top-[42%] h-[26rem] w-[26rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cordero-espresso/10 blur-[110px]" />
-      </div>
+    <main>
+      {/* ── NAVIGATION ─────────────────────────────────────────── */}
+      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-8 py-6 sm:px-14">
+        <span className="font-heading text-xs uppercase tracking-[0.22em] text-cordero-espresso">
+          Cordero
+        </span>
+        <nav className="flex items-center gap-8">
+          <Link
+            href="#nosotros"
+            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+          >
+            Acerca de nosotros
+          </Link>
+          <Link
+            href="/acceso"
+            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+          >
+            Iniciar sesión
+          </Link>
+        </nav>
+      </header>
 
-      <nav className="mb-12 flex w-full max-w-xl items-center justify-center rounded-full border border-cordero/60 bg-cordero-card/70 p-1.5 shadow-[0_12px_40px_-30px_rgba(0,0,0,0.75)] backdrop-blur">
-        <Link
-          href="#acerca-de-nosotros"
-          className="rounded-full px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso/80 transition hover:bg-cordero-cream/80 hover:text-cordero-espresso"
-        >
-          Acerca de nosotros
-        </Link>
-        <Link
-          href="/acceso"
-          className="rounded-full px-6 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso/80 transition hover:bg-cordero-cream/80 hover:text-cordero-espresso"
-        >
-          Iniciar sesion
-        </Link>
-      </nav>
-
-      <section className="w-full max-w-4xl text-center">
-        <div className="relative mx-auto w-full max-w-[34rem]">
-          <div className="absolute inset-x-8 top-0 h-24 rounded-full bg-cordero-cream/75 blur-3xl" />
-          <div className="absolute inset-x-14 bottom-3 h-24 rounded-full bg-cordero-espresso/20 blur-3xl" />
-          <Image
-            src="/logo.png"
-            alt="Cordero Coffee Club"
-            width={960}
-            height={640}
-            priority
-            className="relative z-10 mx-auto h-auto w-full object-cover mix-blend-multiply opacity-95 [mask-image:radial-gradient(ellipse_at_center,_black_54%,_black_66%,_transparent_100%)] [-webkit-mask-image:radial-gradient(ellipse_at_center,_black_54%,_black_66%,_transparent_100%)]"
+      {/* ── HERO ───────────────────────────────────────────────── */}
+      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        {/* Ambient glow */}
+        <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+          <div
+            className="absolute left-1/2 top-1/2 h-[520px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{
+              background:
+                "radial-gradient(circle, hsl(35 27% 87% / 0.65), transparent 70%)",
+            }}
           />
         </div>
 
-        <p
-          id="acerca-de-nosotros"
-          className="mx-auto mt-4 max-w-3xl text-balance font-heading text-3xl leading-[1.25] text-cordero-espresso/95 sm:text-4xl"
-        >
-          {COPY.brand.tagline}
-        </p>
+        {/* Logo */}
+        <div className="mb-14 w-52 sm:w-64 md:w-72">
+          <Image
+            src="/logo.png"
+            alt="Cordero Coffee Club"
+            width={480}
+            height={320}
+            priority
+            className="h-auto w-full object-contain mix-blend-multiply"
+            style={{
+              maskImage:
+                "radial-gradient(ellipse at center, black 52%, transparent 86%)",
+              WebkitMaskImage:
+                "radial-gradient(ellipse at center, black 52%, transparent 86%)",
+            }}
+          />
+        </div>
 
-        <p className="mx-auto mt-5 max-w-2xl text-balance text-lg leading-relaxed text-cordero-espresso/80 sm:text-xl">
+        {/* Thin rule */}
+        <div
+          className="mb-10 h-px w-12"
+          style={{ background: "hsl(22 38% 18% / 0.16)" }}
+        />
+
+        {/* Headline */}
+        <h1 className="font-heading max-w-xl text-balance text-4xl leading-[1.2] text-cordero-espresso sm:text-5xl md:text-[3.25rem]">
+          {COPY.brand.tagline}
+        </h1>
+
+        {/* Subheading */}
+        <p
+          className="mx-auto mt-6 max-w-sm text-balance text-base leading-relaxed sm:text-lg"
+          style={{ color: "hsl(22 38% 18% / 0.52)" }}
+        >
           {COPY.brand.intro}
         </p>
 
-        <div className="mt-10 flex justify-center">
+        {/* CTAs */}
+        <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row">
           <Link
             href="/pedido"
-            className="rounded-full border border-cordero-espresso/10 bg-cordero-espresso px-10 py-4 text-sm font-semibold uppercase tracking-[0.13em] text-cordero-cream shadow-[0_16px_30px_-18px_rgba(45,25,14,0.9)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_34px_-18px_rgba(45,25,14,0.95)]"
+            className="bg-cordero-espresso px-10 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-cordero-cream transition-opacity duration-300 hover:opacity-80"
+          >
+            {COPY.actions.startOrder}
+          </Link>
+          <Link
+            href="#nosotros"
+            className="px-10 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-cordero-espresso transition-opacity duration-300 hover:opacity-50"
+            style={{ border: "1px solid hsl(22 38% 18% / 0.18)" }}
+          >
+            Conocer más
+          </Link>
+        </div>
+
+        {/* Scroll whisper */}
+        <div
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+          style={{ opacity: 0.22 }}
+          aria-hidden
+        >
+          <span className="text-[8px] uppercase tracking-[0.3em] text-cordero-espresso">
+            scroll
+          </span>
+          <div className="h-8 w-px bg-cordero-espresso" />
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ───────────────────────────────────────── */}
+      <section id="nosotros" className="px-6 py-28 sm:px-14">
+        <div className="mx-auto max-w-5xl">
+          {/* Section label */}
+          <div className="mb-20 flex items-center gap-5">
+            <div
+              className="h-px flex-1"
+              style={{ background: "hsl(22 38% 18% / 0.1)" }}
+            />
+            <span
+              className="text-[9px] font-semibold uppercase tracking-[0.36em]"
+              style={{ color: "hsl(22 38% 18% / 0.32)" }}
+            >
+              Cómo funciona
+            </span>
+            <div
+              className="h-px flex-1"
+              style={{ background: "hsl(22 38% 18% / 0.1)" }}
+            />
+          </div>
+
+          <div className="grid gap-14 md:grid-cols-3 md:gap-10">
+            {[
+              {
+                n: "01",
+                title: "Ordena en línea",
+                body: "Explora el menú completo y arma tu pedido desde donde estés, sin filas ni esperas innecesarias.",
+              },
+              {
+                n: "02",
+                title: "Elige tu momento",
+                body: "Agenda la hora de recolección o pide para cuando llegues. Tu ritmo, tu café.",
+              },
+              {
+                n: "03",
+                title: "Sigue tu bebida",
+                body: "Monitorea el estado en tiempo real. Sabrás exactamente cuándo estará listo.",
+              },
+            ].map((f) => (
+              <article key={f.n} className="flex flex-col">
+                <span
+                  className="mb-5 font-heading text-6xl font-medium leading-none"
+                  style={{ color: "hsl(22 38% 18% / 0.06)" }}
+                >
+                  {f.n}
+                </span>
+                <div
+                  className="mb-5 h-px w-8"
+                  style={{ background: "hsl(19 47% 47% / 0.55)" }}
+                />
+                <h3 className="mb-3 font-heading text-xl text-cordero-espresso">
+                  {f.title}
+                </h3>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: "hsl(22 38% 18% / 0.52)" }}
+                >
+                  {f.body}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── MANIFESTO ──────────────────────────────────────────── */}
+      <section className="bg-cordero-espresso px-6 py-28 sm:px-14">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="font-heading text-3xl leading-[1.35] text-cordero-cream sm:text-4xl md:text-[2.75rem]">
+            &ldquo;Un café bien hecho,
+            <br />
+            en el barrio que amás.&rdquo;
+          </p>
+          <div
+            className="mx-auto my-10 h-px w-12"
+            style={{ background: "hsl(34 26% 88% / 0.2)" }}
+          />
+          <Link
+            href="/pedido"
+            className="inline-block px-10 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-cordero-cream transition-opacity duration-300 hover:opacity-60"
+            style={{ border: "1px solid hsl(34 26% 88% / 0.28)" }}
           >
             {COPY.actions.startOrder}
           </Link>
         </div>
       </section>
+
+      {/* ── FOOTER ─────────────────────────────────────────────── */}
+      <footer
+        className="bg-cordero-espresso px-8 py-10 sm:px-14"
+        style={{ borderTop: "1px solid hsl(34 26% 88% / 0.08)" }}
+      >
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 sm:flex-row">
+          <span
+            className="font-heading text-sm tracking-widest"
+            style={{ color: "hsl(34 26% 88% / 0.32)" }}
+          >
+            Cordero Coffee Club
+          </span>
+          <span
+            className="text-[9px] uppercase tracking-[0.25em]"
+            style={{ color: "hsl(34 26% 88% / 0.18)" }}
+          >
+            © {new Date().getFullYear()} — Café artesanal con alma de barrio
+          </span>
+          <Link
+            href="/acceso"
+            className="text-[10px] uppercase tracking-[0.2em] transition-opacity duration-300 hover:opacity-70"
+            style={{ color: "hsl(34 26% 88% / 0.32)" }}
+          >
+            Iniciar sesión
+          </Link>
+        </div>
+      </footer>
     </main>
   );
 }
