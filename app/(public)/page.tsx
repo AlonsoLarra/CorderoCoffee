@@ -5,89 +5,91 @@ import { COPY } from "@/lib/copy";
 function LambIcon({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 100 112"
+      viewBox="0 0 200 220"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden
     >
-      {/* Body */}
-      <ellipse
-        cx="50"
-        cy="60"
-        rx="27"
-        ry="20"
+      {/* Body — organic fluffy curve, not a geometric ellipse */}
+      <path
+        d="M 48 92 C 44 74 58 60 82 57 C 106 54 126 62 132 78 C 138 94 130 116 110 124 C 90 132 62 128 48 114 C 36 102 40 96 48 92 Z"
         stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
+        strokeWidth="4"
+        strokeLinejoin="round"
       />
       {/* Neck */}
       <path
-        d="M 66 44 Q 69 47 71 52"
+        d="M 126 78 C 130 68 132 60 130 52"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="4"
         strokeLinecap="round"
       />
       {/* Head */}
-      <ellipse
-        cx="76"
-        cy="37"
-        rx="11"
-        ry="9"
+      <path
+        d="M 130 52 C 128 40 138 32 150 36 C 162 40 166 54 158 64 C 150 74 136 73 130 64 C 128 60 128 56 130 52 Z"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="4"
+        strokeLinejoin="round"
       />
       {/* Left ear */}
       <path
-        d="M 68 29 Q 64 21 71 25"
+        d="M 136 38 C 130 26 138 18 144 30"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="3.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {/* Right ear */}
       <path
-        d="M 81 27 Q 86 19 83 27"
+        d="M 150 34 C 152 22 162 24 156 36"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="3.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {/* Eye */}
-      <circle cx="79" cy="36" r="1.8" fill="currentColor" />
-      {/* Front leg left */}
+      <circle cx="150" cy="50" r="3" fill="currentColor" />
+      {/* Muzzle */}
       <path
-        d="M 61 78 L 59 98"
+        d="M 158 60 C 162 64 160 70 155 70"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="3"
         strokeLinecap="round"
       />
-      {/* Front leg right */}
+      {/* Front right leg — slightly raised/forward for walking pose */}
       <path
-        d="M 67 79 L 69 99"
+        d="M 108 122 C 108 136 106 152 104 168"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="4"
         strokeLinecap="round"
       />
-      {/* Back leg left */}
+      {/* Front left leg */}
       <path
-        d="M 37 77 L 34 97"
+        d="M 94 126 C 94 140 94 156 94 172"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="4"
         strokeLinecap="round"
       />
-      {/* Back leg right */}
+      {/* Back right leg */}
       <path
-        d="M 43 78 L 43 98"
+        d="M 70 126 C 68 140 66 156 64 170"
         stroke="currentColor"
-        strokeWidth="2.4"
+        strokeWidth="4"
+        strokeLinecap="round"
+      />
+      {/* Back left leg */}
+      <path
+        d="M 56 120 C 53 134 50 150 48 164"
+        stroke="currentColor"
+        strokeWidth="4"
         strokeLinecap="round"
       />
       {/* Tail */}
       <path
-        d="M 24 57 Q 15 50 21 43"
+        d="M 48 88 C 38 78 36 66 44 60"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="3.5"
         strokeLinecap="round"
       />
     </svg>
@@ -98,14 +100,14 @@ export default function PublicHomePage() {
   return (
     <main>
       {/* ── NAVIGATION ─────────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-8 py-6 sm:px-14">
+      <header className="fixed inset-x-0 top-0 z-50 flex items-center justify-between px-6 py-5 sm:px-14 sm:py-6">
         <span className="font-heading text-xs uppercase tracking-[0.22em] text-cordero-espresso">
           Cordero
         </span>
-        <nav className="flex items-center gap-8">
+        <nav className="flex items-center gap-6 sm:gap-8">
           <Link
             href="#nosotros"
-            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+            className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100 sm:block"
           >
             Acerca de nosotros
           </Link>
