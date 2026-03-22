@@ -185,9 +185,9 @@ export default function PublicHomePage() {
             />
           </div>
           <p className="font-heading text-3xl leading-[1.35] text-cordero-cream sm:text-4xl md:text-[2.75rem]">
-            &ldquo;El café que merecés,
+            &ldquo;Hecho con cuidado,
             <br />
-            en el barrio que conocés.&rdquo;
+            para quien sabe apreciarlo.&rdquo;
           </p>
           <div
             className="mx-auto my-10 h-px w-12"
