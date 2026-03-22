@@ -13,6 +13,7 @@ export default async function OrderingPage() {
   let loadErrorMessage = "No pudimos cargar el menu desde Supabase. Revisa variables de entorno y migraciones.";
   let userEmail: string | null = null;
   let profileName: string | null = null;
+  let rewardPoints: number | null = null;
 
   try {
     const supabase = createSupabaseServerClient();
@@ -25,13 +26,14 @@ export default async function OrderingPage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("name")
+        .select("name,reward_points")
         .eq("id", user.id)
         .maybeSingle();
 
       if (profile) {
-        const typedProfile = profile as unknown as { name: string | null };
+        const typedProfile = profile as unknown as { name: string | null; reward_points: number };
         profileName = typedProfile.name;
+        rewardPoints = typedProfile.reward_points ?? 0;
       }
     }
 
@@ -62,9 +64,14 @@ export default async function OrderingPage() {
 
       <div className="mt-6 rounded-2xl border border-cordero bg-cordero-card p-4 text-sm text-cordero-espresso">
         {userEmail ? (
-          <p>
-            Modo cliente: {profileName ? profileName : userEmail}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p>Modo cliente: {profileName ? profileName : userEmail}</p>
+            {rewardPoints !== null && (
+              <span className="rounded-full border border-cordero px-3 py-0.5 text-xs">
+                {rewardPoints} puntos de recompensa
+              </span>
+            )}
+          </div>
         ) : (
           <p>MODO INVITADO: tu carrito se guarda en este dispositivo.</p>
         )}

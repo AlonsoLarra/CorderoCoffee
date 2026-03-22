@@ -128,6 +128,47 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
     notifyCustomerOrderReady(order.id).catch(console.error);
   }
 
+  // Otorgar puntos de lealtad al entregar el pedido (non-blocking)
+  if (payload.nextStatus === "entregado") {
+    void (async () => {
+      try {
+        const { data: orderForPoints } = await supabase
+          .from("orders")
+          .select("user_id")
+          .eq("id", order.id)
+          .maybeSingle();
+
+        const typedOrderForPoints = orderForPoints as unknown as { user_id: string | null } | null;
+        if (!typedOrderForPoints?.user_id) return;
+
+        const { data: itemsData } = await supabase
+          .from("order_items")
+          .select("quantity")
+          .eq("order_id", order.id);
+
+        const items = (itemsData ?? []) as unknown as { quantity: number }[];
+        const points = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+        if (points <= 0) return;
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("reward_points")
+          .eq("id", typedOrderForPoints.user_id)
+          .maybeSingle();
+
+        const typedProfileData = profileData as unknown as { reward_points: number } | null;
+        const currentPoints = typedProfileData?.reward_points ?? 0;
+
+        await supabase
+          .from("profiles")
+          .update({ reward_points: currentPoints + points, updated_at: new Date().toISOString() })
+          .eq("id", typedOrderForPoints.user_id);
+      } catch {
+        // Non-blocking: ignorar errores en otorgamiento de puntos
+      }
+    })();
+  }
+
   return NextResponse.json({
     orderId: updatedOrder.id,
     status: updatedOrder.status,
