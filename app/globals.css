@@ -14,19 +14,6 @@
   --radius-md: 0.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-cream: 24 26% 10%;
-    --color-espresso: 34 26% 88%;
-    --color-terracotta: 20 58% 62%;
-    --color-olive: 95 22% 62%;
-    --color-sand: 26 15% 28%;
-    --color-card: 24 22% 14%;
-    --color-card-foreground: 34 26% 88%;
-    --color-border: 26 13% 34%;
-  }
-}
-
 body {
   font-family: var(--font-body), sans-serif;
   background:
