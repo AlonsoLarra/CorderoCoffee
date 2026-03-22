@@ -130,18 +130,18 @@ export default function PublicHomePage() {
             {[
               {
                 n: "01",
-                title: "Elegí en línea",
-                body: "Explorá el menú y armá tu pedido desde donde estés, con tiempo y sin apuro.",
+                title: "Elige en línea",
+                body: "Explora el menú y arma tu pedido desde donde estés, con calma y sin prisa.",
               },
               {
                 n: "02",
-                title: "Definí tu momento",
-                body: "Reservá el horario de recogida. Lo tenemos listo exactamente entonces.",
+                title: "Elige tu momento",
+                body: "Reserva tu horario de recolección. Lo tenemos listo en punto.",
               },
               {
                 n: "03",
-                title: "Llegá y retirá",
-                body: "Seguí el estado en tiempo real. Tu bebida, en su punto justo al llegar.",
+                title: "Llega y recoge",
+                body: "Sigue el estado en tiempo real. Tu bebida, lista en su punto al llegar.",
               },
             ].map((f) => (
               <article key={f.n} className="flex flex-col">

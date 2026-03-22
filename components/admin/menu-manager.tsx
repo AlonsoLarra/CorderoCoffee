@@ -48,13 +48,13 @@ export function MenuManager({ categories, items }: MenuManagerProps) {
     const response = await action();
     if (!response.ok) {
       const body = (await response.json()) as { error?: string };
-      const message = body.error ?? "No pudimos completar la accion.";
+      const message = body.error ?? "No pudimos completar la acción.";
       setErrorMessage(message);
       showToast(message, "error");
       return;
     }
 
-    showToast("Operacion completada.", "success");
+    showToast("Operación completada.", "success");
 
     startTransition(() => {
       router.refresh();
@@ -129,13 +129,13 @@ export function MenuManager({ categories, items }: MenuManagerProps) {
   return (
     <section className="mt-10 grid gap-8 lg:grid-cols-2">
       <div className="rounded-2xl border border-cordero bg-cordero-card p-5">
-        <h3 className="font-heading text-2xl">Categorias</h3>
+        <h3 className="font-heading text-2xl">Categorías</h3>
 
         <div className="mt-4 space-y-3">
           <input
             className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
             onChange={(event) => setNewCategoryName(event.target.value)}
-            placeholder="Nombre categoria"
+            placeholder="Nombre de categoría"
             value={newCategoryName}
           />
           <input
@@ -151,7 +151,7 @@ export function MenuManager({ categories, items }: MenuManagerProps) {
             onClick={createCategory}
             type="button"
           >
-            Crear categoria
+            Crear categoría
           </button>
         </div>
 
@@ -197,7 +197,7 @@ export function MenuManager({ categories, items }: MenuManagerProps) {
           <textarea
             className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
             onChange={(event) => setNewItemDescription(event.target.value)}
-            placeholder="Descripcion"
+            placeholder="Descripción"
             rows={2}
             value={newItemDescription}
           />

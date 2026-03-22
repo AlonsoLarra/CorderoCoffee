@@ -21,14 +21,14 @@ export async function signInAction(formData: FormData): Promise<void> {
   const password = getStringValue(formData.get("password"));
 
   if (!email || !password) {
-    toAccessError("Completa correo y contrasena para continuar.");
+    toAccessError("Completa tu correo y contraseña para continuar.");
   }
 
   const supabase = createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    toAccessError("No pudimos iniciar sesion con esos datos.");
+    toAccessError("No pudimos iniciar sesión con esos datos.");
   }
 
   redirect("/pedido");
@@ -39,7 +39,7 @@ export async function signUpAction(formData: FormData): Promise<void> {
   const password = getStringValue(formData.get("password"));
 
   if (!email || !password) {
-    toAccessError("Completa correo y contrasena para continuar.");
+    toAccessError("Completa tu correo y contraseña para continuar.");
   }
 
   const supabase = createSupabaseServerClient();
@@ -49,7 +49,7 @@ export async function signUpAction(formData: FormData): Promise<void> {
   });
 
   if (error) {
-    toAccessError("Ocurrio un error. Intenta de nuevo.");
+    toAccessError("Ocurrió un error. Intenta de nuevo.");
   }
 
   redirect(`/acceso?success=${encodeURIComponent("Cuenta creada. Revisa tu correo para confirmar tu acceso.")}`);
