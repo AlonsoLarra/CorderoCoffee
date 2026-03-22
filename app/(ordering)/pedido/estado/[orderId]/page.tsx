@@ -46,7 +46,7 @@ const paymentLabel: Record<PaymentMethod, string> = {
 };
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat("es-CL", {
+  return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -65,7 +65,7 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
       <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
         <h1 className="font-heading text-4xl text-cordero-espresso">Seguimiento de pedido</h1>
         <p className="mt-4 text-cordero-espresso opacity-80">
-          Inicia sesion para ver el estado de tus pedidos.
+          Inicia sesión para ver el estado de tus pedidos.
         </p>
         <div className="mt-8 flex gap-4">
           <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso">
@@ -90,10 +90,10 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
       <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
         <h1 className="font-heading text-4xl text-cordero-espresso">Pedido no encontrado</h1>
         <p className="mt-4 text-cordero-espresso opacity-80">
-          No encontramos un pedido con ese identificador dentro de tu sesion.
+          No encontramos un pedido con ese identificador dentro de tu sesión.
         </p>
         <Link className="mt-8 inline-block rounded-full border border-cordero px-5 py-2 text-sm" href="/pedido">
-          Volver al menu
+          Volver al menú
         </Link>
       </main>
     );
@@ -141,7 +141,7 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
         <h2 className="font-heading text-2xl">Timeline</h2>
         <ol className="mt-4 space-y-3">
           {logs.length === 0 ? (
-            <li className="text-sm opacity-75">Sin movimientos aun.</li>
+            <li className="text-sm opacity-75">Sin movimientos aún.</li>
           ) : (
             logs.map((log) => (
               <li key={log.id} className="rounded-xl border border-cordero px-4 py-3">
@@ -155,7 +155,7 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
 
       <div className="mt-8 flex gap-4">
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/pedido">
-          Volver al menu
+          Volver al menú
         </Link>
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/">
           Ir al inicio

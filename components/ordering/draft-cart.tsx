@@ -51,9 +51,9 @@ function saveCartLines(lines: CartLine[]): void {
 }
 
 function formatPrice(value: number): string {
-  return new Intl.NumberFormat("es-CL", {
+  return new Intl.NumberFormat("es-MX", {
     style: "currency",
-    currency: "CLP",
+    currency: "MXN",
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -215,7 +215,7 @@ export function DraftCart({ categories }: DraftCartProps) {
 
         <ul className="mt-4 space-y-3">
           {lines.length === 0 ? (
-            <li className="text-sm text-cordero-espresso opacity-75">Aun no agregas productos.</li>
+            <li className="text-sm text-cordero-espresso opacity-75">Aún no agregas productos.</li>
           ) : (
             lines.map((line) => (
               <li key={line.itemId} className="rounded-xl border border-cordero px-3 py-2">
@@ -284,7 +284,7 @@ export function DraftCart({ categories }: DraftCartProps) {
           <textarea
             className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Sin azucar, leche de avena, etc."
+            placeholder="Sin azúcar, leche de avena, etc."
             rows={3}
             value={notes}
           />

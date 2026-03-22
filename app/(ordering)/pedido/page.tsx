@@ -60,13 +60,13 @@ export default async function OrderingPage() {
       {loadError ? (
         <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
           <p className="text-sm text-cordero-espresso opacity-75">
-            No pudimos cargar el menu desde Supabase. Revisa variables de entorno y migraciones.
+            No pudimos cargar el menú desde Supabase. Revisa variables de entorno y migraciones.
           </p>
         </div>
       ) : categories.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
           <p className="text-sm text-cordero-espresso opacity-75">
-            Menu sin productos activos aun. Ejecuta el seed inicial o activa items en admin.
+            Menú sin productos activos aún. Ejecuta el seed inicial o activa items en admin.
           </p>
         </div>
       ) : (

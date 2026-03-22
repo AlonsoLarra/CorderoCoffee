@@ -20,15 +20,15 @@ export default function ConfirmationPage({ searchParams }: ConfirmationPageProps
       </h1>
 
       <p className="mt-4 text-cordero-espresso opacity-85">
-        Recibimos tu solicitud y el equipo comenzara a prepararla pronto.
+        Recibimos tu solicitud y el equipo comenzará a prepararla pronto.
       </p>
 
       <p className="mt-2 text-sm text-cordero-espresso opacity-75">
-        Si hiciste el pedido con sesion iniciada, puedes revisar su estado en tiempo real.
+        Si hiciste el pedido con sesión iniciada, puedes revisar su estado en tiempo real.
       </p>
 
       <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-5">
-        <p className="text-sm text-cordero-espresso opacity-80">Numero de pedido</p>
+        <p className="text-sm text-cordero-espresso opacity-80">Número de pedido</p>
         <p className="mt-1 break-all text-lg font-medium text-cordero-espresso">
           {orderId ?? "No disponible"}
         </p>
@@ -41,7 +41,7 @@ export default function ConfirmationPage({ searchParams }: ConfirmationPageProps
           </Link>
         ) : null}
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/pedido">
-          Volver al menu
+          Volver al menú
         </Link>
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/">
           Ir al inicio

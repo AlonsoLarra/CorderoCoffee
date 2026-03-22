@@ -31,7 +31,7 @@ const statusLabel: Record<OrderStatus, string> = {
 
 const nextTransitionLabel: Record<OrderStatus, string | null> = {
   pendiente: "Aceptar",
-  aceptado: "Iniciar preparacion",
+  aceptado: "Iniciar preparación",
   preparando: "Marcar listo",
   listo: "Marcar entregado",
   entregado: null,
@@ -68,14 +68,14 @@ function urgencyBadge(minutes: number): { label: string; className: string } {
   }
 
   if (minutes >= 8) {
-    return { label: `Atencion (${minutes} min)`, className: "bg-amber-100 text-amber-800 border-amber-200" };
+    return { label: `Atención (${minutes} min)`, className: "bg-amber-100 text-amber-800 border-amber-200" };
   }
 
   return { label: `En tiempo (${minutes} min)`, className: "bg-emerald-100 text-emerald-800 border-emerald-200" };
 }
 
 function formatDate(dateIso: string): string {
-  return new Intl.DateTimeFormat("es-CL", {
+  return new Intl.DateTimeFormat("es-MX", {
     dateStyle: "short",
     timeStyle: "short",
   }).format(new Date(dateIso));
