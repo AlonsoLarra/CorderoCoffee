@@ -84,9 +84,15 @@ export default async function OrderingPage() {
         <DraftCart categories={categories} />
       )}
 
-      <Link className="mt-8 inline-block text-sm underline" href="/">
-        {COPY.actions.backToHome}
-      </Link>
+      <div className="mt-8 flex gap-4">
+        <Link className="text-sm underline" href="/">
+          {COPY.actions.backToHome}
+        </Link>
+        {/* Only logged-in users have order history */}
+        <Link className="text-sm underline" href="/pedido/historial">
+          {COPY.ordering.historialLink}
+        </Link>
+      </div>
     </main>
   );
 }
