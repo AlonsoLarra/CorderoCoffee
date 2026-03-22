@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function OrderingPage() {
   let categories: MenuCategoryWithItems[] = [];
   let loadError = false;
+  let loadErrorMessage = "No pudimos cargar el menu desde Supabase. Revisa variables de entorno y migraciones.";
   let userEmail: string | null = null;
   let profileName: string | null = null;
 
@@ -35,7 +36,19 @@ export default async function OrderingPage() {
     }
 
     categories = await getActiveMenu();
-  } catch {
+  } catch (error) {
+    console.error("[ordering] failed to load menu", error);
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "PGRST205"
+    ) {
+      loadErrorMessage =
+        "Faltan migraciones en Supabase: no existe la tabla public.menu_categories. Ejecuta supabase/migrations/202603210001_init.sql y luego supabase/seed.sql en tu proyecto.";
+    }
+
     loadError = true;
   }
 
@@ -59,9 +72,7 @@ export default async function OrderingPage() {
 
       {loadError ? (
         <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
-          <p className="text-sm text-cordero-espresso opacity-75">
-            No pudimos cargar el menú desde Supabase. Revisa variables de entorno y migraciones.
-          </p>
+          <p className="text-sm text-cordero-espresso opacity-75">{loadErrorMessage}</p>
         </div>
       ) : categories.length === 0 ? (
         <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">

@@ -1,10 +1,10 @@
-type PublicEnvKey = "NEXT_PUBLIC_SUPABASE_URL" | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY";
+type PublicEnvKey =
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+  | "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY";
 type PrivateEnvKey = "SUPABASE_SERVICE_ROLE_KEY";
 
-const requiredPublicEnvKeys: PublicEnvKey[] = [
-  "NEXT_PUBLIC_SUPABASE_URL",
-  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY",
-];
+const requiredPublicEnvKeys: PublicEnvKey[] = ["NEXT_PUBLIC_SUPABASE_URL"];
 
 function assertEnvValue(key: string, value: string | undefined): string {
   if (!value) {
@@ -18,14 +18,27 @@ function readPublicEnv(key: PublicEnvKey): string {
   return assertEnvValue(key, process.env[key]);
 }
 
+function readSupabasePublicKey(): string {
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (anonKey) {
+    return anonKey;
+  }
+
+  return readPublicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY");
+}
+
 function readPrivateEnv(key: PrivateEnvKey): string {
   return assertEnvValue(key, process.env[key]);
 }
 
 export function getPublicEnv() {
+  const publicSupabaseKey = readSupabasePublicKey();
+
   return {
     NEXT_PUBLIC_SUPABASE_URL: readPublicEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: readPublicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY"),
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: publicSupabaseKey,
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: publicSupabaseKey,
   };
 }
 
@@ -38,6 +51,8 @@ export function validateEnvironment(options?: { requireServiceRole?: boolean }):
     readPublicEnv(key);
   });
 
+  readSupabasePublicKey();
+
   if (options?.requireServiceRole) {
     readPrivateEnv("SUPABASE_SERVICE_ROLE_KEY");
   }
@@ -46,14 +61,14 @@ export function validateEnvironment(options?: { requireServiceRole?: boolean }):
 export const env = {
   get NEXT_PUBLIC_SUPABASE_URL(): string {
     return assertEnvValue(
-    "NEXT_PUBLIC_SUPABASE_URL",
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
+      "NEXT_PUBLIC_SUPABASE_URL",
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
     );
   },
+  get NEXT_PUBLIC_SUPABASE_ANON_KEY(): string {
+    return readSupabasePublicKey();
+  },
   get NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY(): string {
-    return assertEnvValue(
-    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY",
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY,
-    );
+    return readSupabasePublicKey();
   },
 };
