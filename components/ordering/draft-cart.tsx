@@ -260,6 +260,25 @@ export function DraftCart({ categories }: DraftCartProps) {
 
       const body = (await response.json()) as CreateOrderResponse;
 
+      if (paymentMethod === "card_online") {
+        const stripeResponse = await fetch("/api/checkout/stripe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: body.orderId }),
+        });
+
+        if (stripeResponse.ok) {
+          const stripeBody = (await stripeResponse.json()) as { url?: string; error?: string };
+          if (stripeBody.url) {
+            setLines([]);
+            window.localStorage.removeItem(STORAGE_KEY);
+            window.location.href = stripeBody.url;
+            return;
+          }
+        }
+        // Si Stripe no está configurado (503) o falla, continuar con flujo normal
+      }
+
       setLines([]);
       setNotes("");
       setScheduledPickupAt("");
@@ -423,6 +442,7 @@ export function DraftCart({ categories }: DraftCartProps) {
           >
             <option value="cash">Efectivo</option>
             <option value="card_pending">Tarjeta al retirar</option>
+            <option value="card_online">Tarjeta en línea (Stripe)</option>
           </select>
 
           <label className="mt-3 block text-xs font-medium">Notas (opcional)</label>
