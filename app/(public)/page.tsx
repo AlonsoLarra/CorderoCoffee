@@ -130,18 +130,18 @@ export default function PublicHomePage() {
             {[
               {
                 n: "01",
-                title: "Ordena en línea",
-                body: "Explora el menú completo y arma tu pedido desde donde estés, sin filas ni esperas innecesarias.",
+                title: "Elegí en línea",
+                body: "Explorá el menú y armá tu pedido desde donde estés, con tiempo y sin apuro.",
               },
               {
                 n: "02",
-                title: "Elige tu momento",
-                body: "Agenda la hora de recolección o pide para cuando llegues. Tu ritmo, tu café.",
+                title: "Definí tu momento",
+                body: "Reservá el horario de recogida. Lo tenemos listo exactamente entonces.",
               },
               {
                 n: "03",
-                title: "Sigue tu bebida",
-                body: "Monitorea el estado en tiempo real. Sabrás exactamente cuándo estará listo.",
+                title: "Llegá y retirá",
+                body: "Seguí el estado en tiempo real. Tu bebida, en su punto justo al llegar.",
               },
             ].map((f) => (
               <article key={f.n} className="flex flex-col">
@@ -185,9 +185,9 @@ export default function PublicHomePage() {
             />
           </div>
           <p className="font-heading text-3xl leading-[1.35] text-cordero-cream sm:text-4xl md:text-[2.75rem]">
-            &ldquo;Un café bien hecho,
+            &ldquo;El café que merecés,
             <br />
-            en el barrio que amás.&rdquo;
+            en el barrio que conocés.&rdquo;
           </p>
           <div
             className="mx-auto my-10 h-px w-12"
@@ -219,7 +219,7 @@ export default function PublicHomePage() {
             className="text-[9px] uppercase tracking-[0.25em]"
             style={{ color: "hsl(34 26% 88% / 0.18)" }}
           >
-            © {new Date().getFullYear()} — Café artesanal con alma de barrio
+            © {new Date().getFullYear()} — Cordero Coffee Club
           </span>
           <Link
             href="/acceso"
