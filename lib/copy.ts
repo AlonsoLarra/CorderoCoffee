@@ -29,6 +29,7 @@ export const COPY = {
     title: "Tu pedido",
     description: "Aquí construiremos el flujo completo de menú, carrito y checkout para cliente y guest.",
     placeholder: "Pendiente: menú dinámico con categorías, modificadores y persistencia de carrito.",
+    historialLink: "Ver mis pedidos",
   },
   admin: {
     title: "Panel de administración",
