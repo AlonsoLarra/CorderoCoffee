@@ -1,10 +1,18 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+export type ItemModifier = {
+  id: string;
+  name: string;
+  options: string[];
+  isRequired: boolean;
+};
+
 export type MenuItemLite = {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  modifiers: ItemModifier[];
 };
 
 export type MenuCategoryWithItems = {
@@ -20,6 +28,13 @@ type RawCategory = {
   sort_order: number;
 };
 
+type RawModifier = {
+  id: string;
+  name: string;
+  options: string[];
+  is_required: boolean;
+};
+
 type RawItem = {
   id: string;
   category_id: string;
@@ -27,6 +42,7 @@ type RawItem = {
   description: string | null;
   price: number;
   sort_order: number;
+  item_modifiers: RawModifier[];
 };
 
 export async function getActiveMenu(): Promise<MenuCategoryWithItems[]> {
@@ -41,7 +57,7 @@ export async function getActiveMenu(): Promise<MenuCategoryWithItems[]> {
         .order("sort_order", { ascending: true }),
       supabase
         .from("menu_items")
-        .select("id,category_id,name,description,price,sort_order")
+        .select("id,category_id,name,description,price,sort_order,item_modifiers(id,name,options,is_required)")
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
     ]);
@@ -65,6 +81,12 @@ export async function getActiveMenu(): Promise<MenuCategoryWithItems[]> {
         name: item.name,
         description: item.description,
         price: Number(item.price),
+        modifiers: (item.item_modifiers ?? []).map((mod) => ({
+          id: mod.id,
+          name: mod.name,
+          options: mod.options ?? [],
+          isRequired: mod.is_required,
+        })),
       }));
 
     return {
