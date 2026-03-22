@@ -9,4 +9,4 @@ export type OrderStatus =
 
 export type OrderType = "online" | "walkin";
 export type PickupType = "ahora" | "agendar" | "al_llegar";
-export type PaymentMethod = "cash" | "card_pending";
+export type PaymentMethod = "cash" | "card_pending" | "card_online";

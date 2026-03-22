@@ -9,7 +9,7 @@ function isPickupType(value: string): value is PickupType {
 }
 
 function isPaymentMethod(value: string): value is PaymentMethod {
-  return value === "cash" || value === "card_pending";
+  return value === "cash" || value === "card_pending" || value === "card_online";
 }
 
 function badRequest(message: string) {
