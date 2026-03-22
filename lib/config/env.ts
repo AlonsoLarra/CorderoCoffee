@@ -71,4 +71,10 @@ export const env = {
   get NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY(): string {
     return readSupabasePublicKey();
   },
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ?? "",
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
+  // Variables opcionales para notificaciones por email
+  RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
+  NOTIFICATION_FROM_EMAIL: process.env.NOTIFICATION_FROM_EMAIL ?? "",
 };
