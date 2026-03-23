@@ -41,6 +41,50 @@ App disponible en http://localhost:3000
 - `npm run build`: build de produccion
 - `npm run start`: correr build en produccion
 - `npm run smoke`: smoke tests HTTP basicos contra una app levantada
+- `npm run ios:add`: crea proyecto nativo iOS (una sola vez)
+- `npm run ios:sync`: sincroniza cambios web/config a iOS
+- `npm run ios:open`: abre proyecto iOS en Xcode
+- `npm run ios:run`: compila y corre en simulador/dispositivo via CLI
+
+## iOS (Capacitor)
+
+El repo incluye una version iOS empaquetada con Capacitor en `ios/`.
+
+### Requisitos
+
+- Xcode instalado
+- CocoaPods disponible en PATH (`pod --version`)
+
+Si instalaste CocoaPods via RubyGems en modo usuario, agrega al shell:
+
+`export PATH="$HOME/.gem/ruby/2.6.0/bin:$PATH"`
+
+En algunos entornos Ruby de macOS tambien puede ser necesario:
+
+`export RUBYOPT='-rlogger'`
+
+### Flujo recomendado
+
+1. Levanta la web local:
+
+	npm run dev
+
+2. (Solo la primera vez) agrega iOS:
+
+	npm run ios:add
+
+3. Sincroniza cambios:
+
+	npm run ios:sync
+
+4. Ejecuta en simulador:
+
+	npm run ios:run
+
+La app iOS usa `CAP_SERVER_URL` y por defecto apunta a `http://localhost:3000`.
+Puedes sobreescribirlo, por ejemplo:
+
+`CAP_SERVER_URL=https://tu-deploy.vercel.app npm run ios:sync`
 
 ## Smoke Tests
 
