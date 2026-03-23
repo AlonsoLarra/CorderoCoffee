@@ -7,9 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "smoke": "bash ./scripts/smoke-e2e.sh"
+    "smoke": "bash ./scripts/smoke-e2e.sh",
+    "ios:add": "npx cap add ios",
+    "ios:sync": "npx cap sync ios",
+    "ios:open": "npx cap open ios",
+    "ios:run": "npx cap run ios"
   },
   "dependencies": {
+    "@capacitor/cli": "^7.6.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/ios": "^8.2.0",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.3",
     "@vercel/analytics": "^2.0.1",
