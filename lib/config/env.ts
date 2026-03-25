@@ -25,7 +25,15 @@ function readSupabasePublicKey(): string {
     return anonKey;
   }
 
-  return readPublicEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY");
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+
+  if (publishableKey) {
+    return publishableKey;
+  }
+
+  throw new Error(
+    "Missing required environment variable: NEXT_PUBLIC_SUPABASE_ANON_KEY or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY",
+  );
 }
 
 function readPrivateEnv(key: PrivateEnvKey): string {
