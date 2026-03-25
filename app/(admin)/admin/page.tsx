@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { MenuManager } from "@/components/admin/menu-manager";
 import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
+import { ReportsPanel } from "@/components/admin/reports-panel";
 import { UserManager } from "@/components/admin/user-manager";
 import { WalkinOrderForm } from "@/components/admin/walkin-order-form";
 import { COPY } from "@/lib/copy";
@@ -25,7 +26,23 @@ export default async function AdminPage() {
 
   const currentRole = (currentProfile as unknown as { role?: string } | null)?.role ?? null;
 
-  const [{ data: rawOrders, error }, { data: rawCategories }, { data: rawItems }] = await Promise.all([
+  // --- Report date boundaries ---
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const [
+    { data: rawOrders, error },
+    { data: rawCategories },
+    { data: rawItems },
+    { data: rawTodayOrders },
+    { data: rawWeekOrders },
+    { data: rawWeekOrderItems },
+    { data: rawTopItems },
+  ] = await Promise.all([
     supabase
       .from("orders")
       .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes")
@@ -37,6 +54,26 @@ export default async function AdminPage() {
       .from("menu_items")
       .select("id,category_id,name,description,price,is_active,sort_order")
       .order("sort_order", { ascending: true }),
+    // Reports: today's orders
+    supabase
+      .from("orders")
+      .select("id,status")
+      .gte("created_at", todayStart.toISOString()),
+    // Reports: this week's orders
+    supabase
+      .from("orders")
+      .select("id")
+      .gte("created_at", sevenDaysAgo.toISOString()),
+    // Reports: order_items for this week's revenue
+    supabase
+      .from("order_items")
+      .select("order_id, quantity, unit_price")
+      .gte("created_at", sevenDaysAgo.toISOString()),
+    // Reports: top products last 7 days
+    supabase
+      .from("order_items")
+      .select("quantity, menu_items(name)")
+      .gte("created_at", sevenDaysAgo.toISOString()),
   ]);
 
   const orders = (rawOrders ?? []) as unknown as Array<{
@@ -76,6 +113,41 @@ export default async function AdminPage() {
     sort_order: number;
   }>;
 
+  // --- Reports data processing ---
+  type TodayOrder = { id: string; status: string };
+  type WeekOrderItem = { order_id: string; quantity: number; unit_price: number };
+  type TopItemRow = { quantity: number; menu_items: { name: string } | null };
+
+  const todayOrders = (rawTodayOrders ?? []) as unknown as TodayOrder[];
+  const weekOrderItems = (rawWeekOrderItems ?? []) as unknown as WeekOrderItem[];
+  const topItemRows = (rawTopItems ?? []) as unknown as TopItemRow[];
+
+  const todayOrderCount = todayOrders.length;
+  const todayDelivered = todayOrders.filter((o) => o.status === "entregado").length;
+  const todayPending = todayOrders.filter((o) => o.status !== "entregado").length;
+
+  const todayOrderIds = new Set(todayOrders.map((o) => o.id));
+  const todayRevenue = weekOrderItems
+    .filter((item) => todayOrderIds.has(item.order_id))
+    .reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
+
+  const weekOrderCount = (rawWeekOrders ?? []).length;
+  const weekRevenue = weekOrderItems.reduce(
+    (sum, item) => sum + Number(item.unit_price) * Number(item.quantity),
+    0,
+  );
+
+  const productTotals = new Map<string, number>();
+  for (const row of topItemRows) {
+    const name = row.menu_items?.name;
+    if (!name) continue;
+    productTotals.set(name, (productTotals.get(name) ?? 0) + Number(row.quantity));
+  }
+  const topProducts = Array.from(productTotals.entries())
+    .map(([name, total]) => ({ name, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 5);
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-16 sm:px-10">
       <h1 className="font-heading text-3xl text-cordero-espresso sm:text-4xl">{COPY.admin.title}</h1>
@@ -111,6 +183,16 @@ export default async function AdminPage() {
       <MenuManager categories={categories} items={items.map((item) => ({ ...item, price: Number(item.price) }))} />
 
       {currentRole === "super_admin" && <UserManager />}
+
+      <ReportsPanel
+        todayOrderCount={todayOrderCount}
+        todayRevenue={todayRevenue}
+        todayDelivered={todayDelivered}
+        todayPending={todayPending}
+        weekOrderCount={weekOrderCount}
+        weekRevenue={weekRevenue}
+        topProducts={topProducts}
+      />
 
       <Link className="mt-8 inline-block rounded-full border border-cordero px-5 py-2 text-sm" href="/">
         Volver al inicio

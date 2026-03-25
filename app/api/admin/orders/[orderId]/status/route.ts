@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { sendOrderReadyEmail } from "@/lib/services/notifications";
 import type { OrderStatus } from "@/lib/types/domain";
 
 type TransitionPayload = {
@@ -17,6 +19,32 @@ const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
 
 function badRequest(message: string) {
   return NextResponse.json({ error: message }, { status: 400 });
+}
+
+// Obtiene el email del cliente y envía la notificación de pedido listo
+async function notifyCustomerOrderReady(orderId: string): Promise<void> {
+  const supabaseAdmin = createSupabaseAdminClient();
+
+  // Obtener el user_id del pedido
+  const { data: orderRow } = await supabaseAdmin
+    .from("orders")
+    .select("user_id")
+    .eq("id", orderId)
+    .maybeSingle();
+
+  const order = orderRow as unknown as { user_id: string | null } | null;
+  if (!order?.user_id) return;
+
+  // Obtener el email del usuario usando el cliente admin de Supabase Auth
+  const { data: userData } = await supabaseAdmin.auth.admin.getUserById(order.user_id);
+  const email = userData?.user?.email;
+  if (!email) return;
+
+  await sendOrderReadyEmail({
+    toEmail: email,
+    orderShortId: orderId.slice(0, 8),
+    orderId,
+  });
 }
 
 function isOrderStatus(value: string): value is OrderStatus {
@@ -93,6 +121,52 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
 
   if (updateError || !updatedOrder) {
     return NextResponse.json({ error: "No pudimos actualizar el estado." }, { status: 500 });
+  }
+
+  // Notificar al cliente cuando el pedido está listo para recoger (fire and forget)
+  if (payload.nextStatus === "listo") {
+    notifyCustomerOrderReady(order.id).catch(console.error);
+  }
+
+  // Otorgar puntos de lealtad al entregar el pedido (non-blocking)
+  if (payload.nextStatus === "entregado") {
+    void (async () => {
+      try {
+        const { data: orderForPoints } = await supabase
+          .from("orders")
+          .select("user_id")
+          .eq("id", order.id)
+          .maybeSingle();
+
+        const typedOrderForPoints = orderForPoints as unknown as { user_id: string | null } | null;
+        if (!typedOrderForPoints?.user_id) return;
+
+        const { data: itemsData } = await supabase
+          .from("order_items")
+          .select("quantity")
+          .eq("order_id", order.id);
+
+        const items = (itemsData ?? []) as unknown as { quantity: number }[];
+        const points = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+        if (points <= 0) return;
+
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("reward_points")
+          .eq("id", typedOrderForPoints.user_id)
+          .maybeSingle();
+
+        const typedProfileData = profileData as unknown as { reward_points: number } | null;
+        const currentPoints = typedProfileData?.reward_points ?? 0;
+
+        await supabase
+          .from("profiles")
+          .update({ reward_points: currentPoints + points, updated_at: new Date().toISOString() })
+          .eq("id", typedOrderForPoints.user_id);
+      } catch {
+        // Non-blocking: ignorar errores en otorgamiento de puntos
+      }
+    })();
   }
 
   return NextResponse.json({

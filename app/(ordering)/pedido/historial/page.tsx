@@ -90,16 +90,20 @@ export default async function OrderHistoryPage() {
     );
   }
 
-  const { data: rawOrders } = await supabase
-    .from("orders")
-    .select(
-      "id,status,pickup_type,payment_method,created_at,order_items(id,item_id,quantity,unit_price,menu_items(name))",
-    )
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
+  const [{ data: rawOrders }, { data: profileData }] = await Promise.all([
+    supabase
+      .from("orders")
+      .select(
+        "id,status,pickup_type,payment_method,created_at,order_items(id,item_id,quantity,unit_price,menu_items(name))",
+      )
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    supabase.from("profiles").select("reward_points").eq("id", user.id).maybeSingle(),
+  ]);
 
   const orders = (rawOrders ?? []) as unknown as OrderWithItems[];
+  const rewardPoints = (profileData as unknown as { reward_points: number } | null)?.reward_points ?? 0;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
@@ -108,7 +112,13 @@ export default async function OrderHistoryPage() {
       </span>
 
       <h1 className="mt-5 font-heading text-4xl text-cordero-espresso">Historial de pedidos</h1>
-      <p className="mt-3 text-cordero-espresso opacity-80">Tus últimos 20 pedidos.</p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <p className="text-cordero-espresso opacity-80">Tus últimos 20 pedidos.</p>
+        <span className="rounded-full border border-cordero bg-cordero-card px-3 py-0.5 text-xs text-cordero-espresso">
+          {rewardPoints} puntos acumulados
+        </span>
+      </div>
 
       {orders.length === 0 ? (
         <div className="mt-10 rounded-2xl border border-cordero bg-cordero-card p-6">

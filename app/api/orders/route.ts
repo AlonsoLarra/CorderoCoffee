@@ -9,7 +9,7 @@ function isPickupType(value: string): value is PickupType {
 }
 
 function isPaymentMethod(value: string): value is PaymentMethod {
-  return value === "cash" || value === "card_pending";
+  return value === "cash" || value === "card_pending" || value === "card_online";
 }
 
 function badRequest(message: string) {
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     .map((line) => ({
       itemId: line.itemId,
       quantity: Number(line.quantity),
+      modifiers: Array.isArray(line.modifiers) ? line.modifiers : [],
     }))
     .filter((line) => Number.isInteger(line.quantity) && line.quantity > 0);
 
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
     item_id: line.itemId,
     quantity: line.quantity,
     unit_price: priceByItem.get(line.itemId) ?? 0,
-    modifiers: [],
+    modifiers: line.modifiers,
   }));
 
   const orderItemsTable = supabase.from("order_items") as unknown as {

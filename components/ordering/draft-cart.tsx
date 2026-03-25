@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { useToast } from "@/components/ui/toast-provider";
-import type { MenuCategoryWithItems, MenuItemLite } from "@/lib/services/menu";
-import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types/checkout";
+import type { ItemModifier, MenuCategoryWithItems, MenuItemLite } from "@/lib/services/menu";
+import type { CreateOrderRequest, CreateOrderResponse, SelectedModifier } from "@/lib/types/checkout";
 import type { PaymentMethod, PickupType } from "@/lib/types/domain";
 
 type CartLine = {
@@ -12,6 +12,12 @@ type CartLine = {
   itemName: string;
   unitPrice: number;
   quantity: number;
+  modifiers: SelectedModifier[];
+};
+
+type ModifierPickerState = {
+  item: MenuItemLite;
+  selections: Record<string, string>;
 };
 
 type DraftCartProps = {
@@ -58,6 +64,50 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
+function ModifierPicker({
+  modifiers,
+  selections,
+  onChange,
+}: {
+  modifiers: ItemModifier[];
+  selections: Record<string, string>;
+  onChange: (modifierId: string, option: string) => void;
+}) {
+  return (
+    <div className="mt-3 space-y-3">
+      {modifiers.map((mod) => (
+        <div key={mod.id}>
+          <p className="text-xs font-medium text-cordero-espresso">
+            {mod.name}
+            {mod.isRequired ? (
+              <span className="ml-1 text-cordero-espresso opacity-60">*</span>
+            ) : null}
+          </p>
+          <div className="mt-1 flex flex-wrap gap-2">
+            {mod.options.map((option) => {
+              const isSelected = selections[mod.id] === option;
+              return (
+                <button
+                  key={option}
+                  className={
+                    isSelected
+                      ? "rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
+                      : "rounded-full border border-cordero px-3 py-1 text-xs text-cordero-espresso"
+                  }
+                  onClick={() => onChange(mod.id, option)}
+                  type="button"
+                >
+                  {option}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function DraftCart({ categories }: DraftCartProps) {
   const { showToast } = useToast();
   const [lines, setLines] = useState<CartLine[]>([]);
@@ -67,6 +117,7 @@ export function DraftCart({ categories }: DraftCartProps) {
   const [notes, setNotes] = useState("");
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modifierPicker, setModifierPicker] = useState<ModifierPickerState | null>(null);
 
   useEffect(() => {
     setLines(loadCartLines());
@@ -84,13 +135,29 @@ export function DraftCart({ categories }: DraftCartProps) {
     return lines.reduce((sum, line) => sum + line.unitPrice * line.quantity, 0);
   }, [lines]);
 
-  function addItem(item: MenuItemLite) {
+  function handleAddItem(item: MenuItemLite) {
+    if (item.modifiers.length > 0) {
+      setModifierPicker({ item, selections: {} });
+      return;
+    }
+
+    commitAddItem(item, []);
+  }
+
+  function commitAddItem(item: MenuItemLite, selectedModifiers: SelectedModifier[]) {
     setLines((current) => {
-      const existing = current.find((line) => line.itemId === item.id);
-      if (existing) {
-        return current.map((line) =>
-          line.itemId === item.id ? { ...line, quantity: line.quantity + 1 } : line,
+      // Items without modifiers can be merged; items with modifiers always create a new line
+      if (selectedModifiers.length === 0) {
+        const existing = current.find(
+          (line) => line.itemId === item.id && line.modifiers.length === 0,
         );
+        if (existing) {
+          return current.map((line) =>
+            line.itemId === item.id && line.modifiers.length === 0
+              ? { ...line, quantity: line.quantity + 1 }
+              : line,
+          );
+        }
       }
 
       return [
@@ -100,19 +167,59 @@ export function DraftCart({ categories }: DraftCartProps) {
           itemName: item.name,
           unitPrice: item.price,
           quantity: 1,
+          modifiers: selectedModifiers,
         },
       ];
     });
   }
 
-  function updateQuantity(itemId: string, nextQuantity: number) {
+  function handleModifierPickerChange(modifierId: string, option: string) {
+    setModifierPicker((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        selections: { ...prev.selections, [modifierId]: option },
+      };
+    });
+  }
+
+  function handleModifierPickerConfirm() {
+    if (!modifierPicker) return;
+
+    const { item, selections } = modifierPicker;
+
+    const missingRequired = item.modifiers.find(
+      (mod) => mod.isRequired && !selections[mod.id],
+    );
+
+    if (missingRequired) {
+      showToast(`Debes seleccionar una opcion para: ${missingRequired.name}`, "error");
+      return;
+    }
+
+    const selectedModifiers: SelectedModifier[] = item.modifiers
+      .filter((mod) => selections[mod.id])
+      .map((mod) => ({
+        modifierName: mod.name,
+        selectedOption: selections[mod.id],
+      }));
+
+    commitAddItem(item, selectedModifiers);
+    setModifierPicker(null);
+  }
+
+  function handleModifierPickerCancel() {
+    setModifierPicker(null);
+  }
+
+  function updateQuantity(itemId: string, lineIndex: number, nextQuantity: number) {
     setLines((current) => {
       if (nextQuantity <= 0) {
-        return current.filter((line) => line.itemId !== itemId);
+        return current.filter((_, idx) => idx !== lineIndex);
       }
 
-      return current.map((line) =>
-        line.itemId === itemId ? { ...line, quantity: nextQuantity } : line,
+      return current.map((line, idx) =>
+        idx === lineIndex ? { ...line, quantity: nextQuantity } : line,
       );
     });
   }
@@ -129,6 +236,7 @@ export function DraftCart({ categories }: DraftCartProps) {
       lines: lines.map((line) => ({
         itemId: line.itemId,
         quantity: line.quantity,
+        modifiers: line.modifiers,
       })),
       pickupType,
       paymentMethod,
@@ -151,6 +259,25 @@ export function DraftCart({ categories }: DraftCartProps) {
       }
 
       const body = (await response.json()) as CreateOrderResponse;
+
+      if (paymentMethod === "card_online") {
+        const stripeResponse = await fetch("/api/checkout/stripe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId: body.orderId }),
+        });
+
+        if (stripeResponse.ok) {
+          const stripeBody = (await stripeResponse.json()) as { url?: string; error?: string };
+          if (stripeBody.url) {
+            setLines([]);
+            window.localStorage.removeItem(STORAGE_KEY);
+            window.location.href = stripeBody.url;
+            return;
+          }
+        }
+        // Si Stripe no está configurado (503) o falla, continuar con flujo normal
+      }
 
       setLines([]);
       setNotes("");
@@ -178,30 +305,62 @@ export function DraftCart({ categories }: DraftCartProps) {
             <h2 className="font-heading text-2xl text-cordero-espresso">{category.name}</h2>
 
             <ul className="mt-4 space-y-3">
-              {category.items.map((item) => (
-                <li
-                  key={item.id}
-                  className="flex flex-col gap-3 rounded-xl border border-cordero px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-cordero-espresso">{item.name}</p>
-                    {item.description ? (
-                      <p className="mt-1 text-xs text-cordero-espresso opacity-75">{item.description}</p>
-                    ) : null}
-                  </div>
+              {category.items.map((item) => {
+                const isPickerOpen = modifierPicker?.item.id === item.id;
+                return (
+                  <li
+                    key={item.id}
+                    className="rounded-xl border border-cordero px-4 py-3"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-cordero-espresso">{item.name}</p>
+                        {item.description ? (
+                          <p className="mt-1 text-xs text-cordero-espresso opacity-75">{item.description}</p>
+                        ) : null}
+                      </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-cordero-espresso">{formatPrice(item.price)}</span>
-                    <button
-                      className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
-                      onClick={() => addItem(item)}
-                      type="button"
-                    >
-                      Agregar
-                    </button>
-                  </div>
-                </li>
-              ))}
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-cordero-espresso">{formatPrice(item.price)}</span>
+                        <button
+                          className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
+                          onClick={() => handleAddItem(item)}
+                          type="button"
+                        >
+                          Agregar
+                        </button>
+                      </div>
+                    </div>
+
+                    {isPickerOpen && modifierPicker ? (
+                      <div className="mt-3 rounded-xl border border-cordero bg-cordero-card p-4">
+                        <p className="text-xs font-medium text-cordero-espresso">Personaliza tu pedido</p>
+                        <ModifierPicker
+                          modifiers={item.modifiers}
+                          selections={modifierPicker.selections}
+                          onChange={handleModifierPickerChange}
+                        />
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
+                            onClick={handleModifierPickerConfirm}
+                            type="button"
+                          >
+                            Confirmar
+                          </button>
+                          <button
+                            className="rounded-full border border-cordero px-3 py-1 text-xs text-cordero-espresso"
+                            onClick={handleModifierPickerCancel}
+                            type="button"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}
@@ -215,16 +374,21 @@ export function DraftCart({ categories }: DraftCartProps) {
 
         <ul className="mt-4 space-y-3">
           {lines.length === 0 ? (
-            <li className="text-sm text-cordero-espresso opacity-75">Aún no agregas productos.</li>
+            <li className="text-sm text-cordero-espresso opacity-75">Aun no agregas productos.</li>
           ) : (
-            lines.map((line) => (
-              <li key={line.itemId} className="rounded-xl border border-cordero px-3 py-2">
+            lines.map((line, idx) => (
+              <li key={`${line.itemId}-${idx}`} className="rounded-xl border border-cordero px-3 py-2">
                 <p className="text-sm text-cordero-espresso">{line.itemName}</p>
+                {line.modifiers.length > 0 ? (
+                  <p className="mt-0.5 text-xs text-cordero-espresso opacity-60">
+                    {line.modifiers.map((m) => m.selectedOption).join(", ")}
+                  </p>
+                ) : null}
                 <div className="mt-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <button
                       className="rounded-full border border-cordero px-2 text-xs"
-                      onClick={() => updateQuantity(line.itemId, line.quantity - 1)}
+                      onClick={() => updateQuantity(line.itemId, idx, line.quantity - 1)}
                       type="button"
                     >
                       -
@@ -232,7 +396,7 @@ export function DraftCart({ categories }: DraftCartProps) {
                     <span className="text-sm">{line.quantity}</span>
                     <button
                       className="rounded-full border border-cordero px-2 text-xs"
-                      onClick={() => updateQuantity(line.itemId, line.quantity + 1)}
+                      onClick={() => updateQuantity(line.itemId, idx, line.quantity + 1)}
                       type="button"
                     >
                       +
@@ -278,13 +442,14 @@ export function DraftCart({ categories }: DraftCartProps) {
           >
             <option value="cash">Efectivo</option>
             <option value="card_pending">Tarjeta al retirar</option>
+            <option value="card_online">Tarjeta en línea (Stripe)</option>
           </select>
 
           <label className="mt-3 block text-xs font-medium">Notas (opcional)</label>
           <textarea
             className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
             onChange={(event) => setNotes(event.target.value)}
-            placeholder="Sin azúcar, leche de avena, etc."
+            placeholder="Sin azucar, leche de avena, etc."
             rows={3}
             value={notes}
           />
