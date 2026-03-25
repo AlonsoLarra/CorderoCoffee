@@ -118,7 +118,9 @@ export default async function AdminPage() {
     items: (order.order_items ?? []).map((oi) => ({
       quantity: oi.quantity,
       name: oi.menu_items?.name ?? "?",
-      modifiers: Array.isArray(oi.modifiers) ? oi.modifiers : [],
+      modifiers: Array.isArray(oi.modifiers)
+        ? (oi.modifiers as { modifierName: string; selectedOption: string }[])
+        : [],
     })),
   }));
 
