@@ -41,6 +41,9 @@ export async function signInAction(formData: FormData): Promise<void> {
   const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    if (error.message === "Email not confirmed") {
+      toAccessError("Debes confirmar tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.");
+    }
     toAccessError("No pudimos iniciar sesión con esos datos.");
   }
 
@@ -60,6 +63,9 @@ export async function signUpAction(formData: FormData): Promise<void> {
   const { error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/auth/callback`,
+    },
   });
 
   if (error) {
