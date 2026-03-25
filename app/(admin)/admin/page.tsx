@@ -3,9 +3,9 @@ import Link from "next/link";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import type { AdminOrderCard } from "@/components/admin/order-queue";
 import { COPY } from "@/lib/copy";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { AdminTabKey, OrderStatus } from "@/lib/types/domain";
-// OrderStatus is used in RawOrder type below
+import type { AdminTabKey, InventoryItem, OrderStatus } from "@/lib/types/domain";
 
 // All tabs super_admin can always access
 const SUPER_ADMIN_TABS = new Set<AdminTabKey>(["pedidos", "alta", "menu", "inventario", "caja", "usuarios", "reportes", "descuentos", "permisos"]);
@@ -46,11 +46,14 @@ export default async function AdminPage() {
   // Cut-off for completed/canceled orders shown in kanban (last 24 h)
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  const supabaseAdmin = createSupabaseAdminClient();
+
   const [
     { data: rawActiveOrders },
     { data: rawRecentDoneOrders },
     { data: rawCategories },
     { data: rawItems },
+    { data: rawInventoryItems },
   ] = await Promise.all([
     // Active orders (not terminal)
     supabase
@@ -72,6 +75,11 @@ export default async function AdminPage() {
       .from("menu_items")
       .select("id,category_id,name,description,price,is_active,sort_order,track_stock,stock_quantity,low_stock_alert")
       .order("sort_order", { ascending: true }),
+    // Insumos de inventario
+    supabaseAdmin
+      .from("inventory_items")
+      .select("id,name,unit,current_stock,minimum_stock,created_at,updated_at")
+      .order("name", { ascending: true }),
   ]);
 
   type RawOrderItem = {
@@ -133,6 +141,8 @@ export default async function AdminPage() {
     low_stock_alert: number;
   }>;
 
+  const inventoryItems = (rawInventoryItems ?? []) as unknown as InventoryItem[];
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-12 sm:px-8">
       <h1 className="font-heading text-3xl text-cordero-espresso sm:text-4xl">{COPY.admin.title}</h1>
@@ -142,6 +152,7 @@ export default async function AdminPage() {
         allowedTabs={allowedTabs}
         categories={categories}
         currentRole={currentRole}
+        inventoryItems={inventoryItems}
         items={items.map((item) => ({ ...item, price: Number(item.price) }))}
         orders={queueItems}
       />
