@@ -32,6 +32,7 @@ function toNuevaContrasenaError(message: string): never {
 export async function signInAction(formData: FormData): Promise<void> {
   const email = getStringValue(formData.get("email"));
   const password = getStringValue(formData.get("password"));
+  const redirectTo = getStringValue(formData.get("redirectTo"));
 
   if (!email || !password) {
     toAccessError("Completa tu correo y contraseña para continuar.");
@@ -45,7 +46,10 @@ export async function signInAction(formData: FormData): Promise<void> {
   }
 
   const role = authData?.user ? await getUserRole(authData.user.id) : null;
-  redirect(isAdminRole(role) ? "/admin" : "/pedido");
+  if (isAdminRole(role)) {
+    redirect("/admin");
+  }
+  redirect(redirectTo || "/pedido");
 }
 
 export async function signUpAction(formData: FormData): Promise<void> {

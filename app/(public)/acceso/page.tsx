@@ -9,6 +9,7 @@ type AccessPageProps = {
   searchParams?: {
     error?: string;
     success?: string;
+    redirectTo?: string;
   };
 };
 
@@ -18,8 +19,10 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const redirectTo = searchParams?.redirectTo;
+
   if (user) {
-    redirect("/pedido");
+    redirect(redirectTo ?? "/pedido");
   }
   const errorMessage = searchParams?.error;
   const successMessage = searchParams?.success;
@@ -46,6 +49,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
       ) : null}
 
       <form action={signInAction} className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
+        {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
         <label className="block text-sm" htmlFor="email">
           {COPY.auth.emailLabel}
         </label>
