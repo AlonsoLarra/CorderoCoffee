@@ -79,9 +79,23 @@ export const env = {
   get NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY(): string {
     return readSupabasePublicKey();
   },
-  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY ?? "",
-  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+  get STRIPE_SECRET_KEY(): string {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key && process.env.NODE_ENV === "production") {
+      throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
+    }
+    return key ?? "";
+  },
+  get STRIPE_WEBHOOK_SECRET(): string {
+    const key = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!key && process.env.NODE_ENV === "production") {
+      throw new Error("Missing required environment variable: STRIPE_WEBHOOK_SECRET");
+    }
+    return key ?? "";
+  },
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "",
+  // URL pública de la app (para redirecciones de Stripe, etc.)
+  APP_URL: process.env.NEXT_PUBLIC_APP_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:3000"),
   // Variables opcionales para notificaciones por email
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
   NOTIFICATION_FROM_EMAIL: process.env.NOTIFICATION_FROM_EMAIL ?? "",

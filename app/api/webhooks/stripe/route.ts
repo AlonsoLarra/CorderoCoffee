@@ -37,6 +37,22 @@ export async function POST(request: Request) {
 
     const supabase = createSupabaseAdminClient();
 
+    // Idempotency check: skip if order is already accepted or beyond
+    const { data: existingOrder } = await (supabase.from("orders") as unknown as {
+      select: (columns: string) => {
+        eq: (column: string, value: string) => {
+          maybeSingle: () => Promise<{ data: { status: string } | null; error: unknown }>;
+        };
+      };
+    })
+      .select("status")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (existingOrder && existingOrder.status !== "pendiente") {
+      return NextResponse.json({ received: true });
+    }
+
     const ordersTable = supabase.from("orders") as unknown as {
       update: (values: Record<string, unknown>) => {
         eq: (column: string, value: string) => Promise<{ error: unknown }>;

@@ -95,11 +95,11 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
               {item.name} - ${item.price}
             </span>
             <div className="flex items-center gap-2">
-              <button className="rounded-full border border-cordero px-2" onClick={() => changeQuantity(item.id, -1)} type="button">
+              <button aria-label={`Quitar una unidad de ${item.name}`} className="rounded-full border border-cordero px-2" onClick={() => changeQuantity(item.id, -1)} type="button">
                 -
               </button>
-              <span>{quantities[item.id] ?? 0}</span>
-              <button className="rounded-full border border-cordero px-2" onClick={() => changeQuantity(item.id, 1)} type="button">
+              <span aria-live="polite">{quantities[item.id] ?? 0}</span>
+              <button aria-label={`Agregar una unidad de ${item.name}`} className="rounded-full border border-cordero px-2" onClick={() => changeQuantity(item.id, 1)} type="button">
                 +
               </button>
             </div>

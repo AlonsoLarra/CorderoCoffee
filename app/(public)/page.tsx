@@ -22,7 +22,7 @@ export default async function PublicHomePage() {
         <span className="font-heading text-xs uppercase tracking-[0.22em] text-cordero-espresso">
           Cordero
         </span>
-        <nav className="flex items-center gap-6 sm:gap-8">
+        <nav aria-label="Navegación principal" className="flex items-center gap-6 sm:gap-8">
           {isAdmin && (
             <Link
               href="/admin"

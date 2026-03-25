@@ -1,10 +1,26 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { env } from "@/lib/config/env";
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`checkout:${ip}`, 5, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Demasiados intentos de pago. Intenta en un momento." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil(rl.resetInMs / 1000)),
+          "X-RateLimit-Remaining": "0",
+        },
+      },
+    );
+  }
+
   if (!env.STRIPE_SECRET_KEY) {
     return NextResponse.json({ error: "Stripe no configurado" }, { status: 503 });
   }
@@ -73,7 +89,7 @@ export async function POST(request: Request) {
     apiVersion: "2023-10-16",
   });
 
-  const baseUrl = request.headers.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const baseUrl = request.headers.get("origin") ?? env.APP_URL;
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map((item) => ({
     price_data: {

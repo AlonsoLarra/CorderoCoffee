@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CreateOrderRequest } from "@/lib/types/checkout";
 import type { PaymentMethod, PickupType } from "@/lib/types/domain";
@@ -17,6 +18,21 @@ function badRequest(message: string) {
 }
 
 export async function POST(request: Request) {
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`orders:${ip}`, 10, 60_000);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Demasiados pedidos. Intenta en un momento." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(Math.ceil(rl.resetInMs / 1000)),
+          "X-RateLimit-Remaining": "0",
+        },
+      },
+    );
+  }
+
   let payload: CreateOrderRequest;
 
   try {
@@ -108,7 +124,7 @@ export async function POST(request: Request) {
       pickup_type: payload.pickupType,
       payment_method: payload.paymentMethod,
       pickup_time: pickupTime,
-      notes: payload.notes?.trim() ? payload.notes.trim() : null,
+      notes: payload.notes?.trim() ? payload.notes.trim().slice(0, 500) : null,
     })
     .select("id,status")
     .maybeSingle()) as {

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { sendOrderReadyEmail } from "@/lib/services/notifications";
+import { logger } from "@/lib/logger";
 import type { OrderStatus } from "@/lib/types/domain";
 
 type TransitionPayload = {
@@ -133,7 +134,9 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
 
   // Notificar al cliente cuando el pedido está listo para recoger (fire and forget)
   if (payload.nextStatus === "listo") {
-    notifyCustomerOrderReady(order.id).catch(console.error);
+    notifyCustomerOrderReady(order.id).catch((err: unknown) =>
+      logger.error("Error enviando notificacion de pedido listo", { route: "/api/admin/orders/[orderId]/status", orderId: order.id, error: err })
+    );
   }
 
   // Otorgar puntos de lealtad al entregar el pedido (non-blocking)
