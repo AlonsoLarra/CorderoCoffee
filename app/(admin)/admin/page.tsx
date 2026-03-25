@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { MenuManager } from "@/components/admin/menu-manager";
 import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
+import { UserManager } from "@/components/admin/user-manager";
 import { WalkinOrderForm } from "@/components/admin/walkin-order-form";
 import { COPY } from "@/lib/copy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -13,6 +14,16 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: currentProfile } = user
+    ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
+    : { data: null };
+
+  const currentRole = (currentProfile as unknown as { role?: string } | null)?.role ?? null;
 
   const [{ data: rawOrders, error }, { data: rawCategories }, { data: rawItems }] = await Promise.all([
     supabase
@@ -98,6 +109,8 @@ export default async function AdminPage() {
       />
 
       <MenuManager categories={categories} items={items.map((item) => ({ ...item, price: Number(item.price) }))} />
+
+      {currentRole === "super_admin" && <UserManager />}
 
       <Link className="mt-8 inline-block rounded-full border border-cordero px-5 py-2 text-sm" href="/">
         Volver al inicio
