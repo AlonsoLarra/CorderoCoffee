@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { DraftCart } from "@/components/ordering/draft-cart";
+import { LocalOrdersPanel } from "@/components/ordering/local-orders-panel";
+import { OrderingShell } from "@/components/ordering/ordering-shell";
 import { COPY } from "@/lib/copy";
 import { getActiveMenu, type MenuCategoryWithItems } from "@/lib/services/menu";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -88,8 +89,10 @@ export default async function OrderingPage() {
           </p>
         </div>
       ) : (
-        <DraftCart categories={categories} />
+        <OrderingShell categories={categories} />
       )}
+
+      <LocalOrdersPanel />
 
       <div className="mt-8 flex gap-4">
         <Link className="text-sm underline" href="/">
