@@ -16,11 +16,11 @@ if (typeof setInterval !== "undefined") {
   setInterval(
     () => {
       const now = Date.now();
-      for (const [key, entry] of store) {
+      store.forEach((entry, key) => {
         if (now - entry.windowStart > 60_000 * 5) {
           store.delete(key);
         }
-      }
+      });
     },
     60_000 * 5,
   );
