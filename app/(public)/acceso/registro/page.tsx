@@ -1,16 +1,16 @@
 import Link from "next/link";
 
-import { signInAction } from "@/app/(public)/acceso/actions";
+import { signUpAction } from "@/app/(public)/acceso/actions";
 import { COPY } from "@/lib/copy";
 
-type AccessPageProps = {
+type RegistroPageProps = {
   searchParams?: {
     error?: string;
     success?: string;
   };
 };
 
-export default function AccessPage({ searchParams }: AccessPageProps) {
+export default function RegistroPage({ searchParams }: RegistroPageProps) {
   const errorMessage = searchParams?.error;
   const successMessage = searchParams?.success;
 
@@ -20,7 +20,7 @@ export default function AccessPage({ searchParams }: AccessPageProps) {
         Cordero Coffee Club
       </span>
 
-      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">{COPY.auth.loginButton}</h1>
+      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">{COPY.auth.registerButton}</h1>
       <p className="mt-3 text-cordero-espresso opacity-80">{COPY.auth.subtitle}</p>
 
       {errorMessage ? (
@@ -35,7 +35,7 @@ export default function AccessPage({ searchParams }: AccessPageProps) {
         </p>
       ) : null}
 
-      <form action={signInAction} className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
+      <form action={signUpAction} className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
         <label className="block text-sm" htmlFor="email">
           {COPY.auth.emailLabel}
         </label>
@@ -55,29 +55,24 @@ export default function AccessPage({ searchParams }: AccessPageProps) {
           id="password"
           name="password"
           type="password"
+          minLength={8}
           required
         />
-
-        <div className="mt-2 text-right">
-          <Link className="text-xs text-cordero-espresso opacity-60 hover:opacity-100" href="/acceso/recuperar">
-            {COPY.auth.forgotPassword}
-          </Link>
-        </div>
 
         <button
           className="mt-6 w-full rounded-full bg-cordero-espresso px-5 py-2 text-sm font-medium text-cordero-cream"
           type="submit"
         >
-          {COPY.auth.loginButton}
+          {COPY.auth.registerButton}
         </button>
       </form>
 
       <div className="mt-6 flex flex-wrap gap-4">
         <Link
           className="rounded-full bg-cordero-espresso/10 px-5 py-2 text-sm font-medium text-cordero-espresso"
-          href="/acceso/registro"
+          href="/acceso"
         >
-          {COPY.auth.noAccount} {COPY.auth.registerButton}
+          {COPY.auth.hasAccount} {COPY.auth.loginButton}
         </Link>
       </div>
 
