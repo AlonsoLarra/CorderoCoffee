@@ -43,6 +43,7 @@ const pickupLabel: Record<PickupType, string> = {
 const paymentLabel: Record<PaymentMethod, string> = {
   cash: "Efectivo",
   card_pending: "Tarjeta al retirar",
+  card_online: "Tarjeta en línea",
 };
 
 function formatDate(value: string): string {
