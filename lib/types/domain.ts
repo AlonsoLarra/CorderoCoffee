@@ -1,4 +1,16 @@
-export type Role = "guest" | "customer" | "admin" | "super_admin";
+export type Role = "guest" | "customer" | "employee" | "admin" | "super_admin";
+
+export type AdminTabKey = "pedidos" | "alta" | "menu" | "usuarios" | "reportes" | "permisos";
+
+export type TabPermission = {
+  tab_key: AdminTabKey;
+  allowed: boolean;
+};
+
+export type RolePermissions = {
+  role: string;
+  permissions: TabPermission[];
+};
 
 export type OrderStatus =
   | "pendiente"
