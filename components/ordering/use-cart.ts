@@ -22,7 +22,11 @@ function loadCartLines(): CartLine[] {
     const raw = window.localStorage.getItem(CART_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CartLine[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((line) => ({
+      ...line,
+      modifiers: Array.isArray(line.modifiers) ? line.modifiers : [],
+    }));
   } catch {
     return [];
   }

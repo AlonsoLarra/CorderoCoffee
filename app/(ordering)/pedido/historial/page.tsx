@@ -140,6 +140,7 @@ export default async function OrderHistoryPage() {
               itemName: item.menu_items?.name ?? "Producto",
               unitPrice: item.unit_price,
               quantity: item.quantity,
+              modifiers: [] as { modifierName: string; selectedOption: string }[],
             }));
 
             return (
