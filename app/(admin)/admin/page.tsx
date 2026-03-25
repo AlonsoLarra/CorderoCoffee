@@ -71,7 +71,7 @@ export default async function AdminPage() {
     // Reports: this week's orders
     supabase
       .from("orders")
-      .select("id")
+      .select("id,status")
       .gte("created_at", sevenDaysAgo.toISOString()),
     // Reports: order_items for this week's revenue
     supabase
@@ -81,7 +81,7 @@ export default async function AdminPage() {
     // Reports: top products last 7 days
     supabase
       .from("order_items")
-      .select("quantity, menu_items(name)")
+      .select("order_id, quantity, menu_items(name)")
       .gte("created_at", sevenDaysAgo.toISOString()),
   ]);
 
@@ -129,30 +129,37 @@ export default async function AdminPage() {
 
   // --- Reports data processing ---
   type TodayOrder = { id: string; status: string };
+  type WeekOrder = { id: string; status: string };
   type WeekOrderItem = { order_id: string; quantity: number; unit_price: number };
-  type TopItemRow = { quantity: number; menu_items: { name: string } | null };
+  type TopItemRow = { order_id: string; quantity: number; menu_items: { name: string } | null };
 
   const todayOrders = (rawTodayOrders ?? []) as unknown as TodayOrder[];
+  const weekOrders = (rawWeekOrders ?? []) as unknown as WeekOrder[];
   const weekOrderItems = (rawWeekOrderItems ?? []) as unknown as WeekOrderItem[];
   const topItemRows = (rawTopItems ?? []) as unknown as TopItemRow[];
 
-  const todayOrderCount = todayOrders.length;
   const todayDelivered = todayOrders.filter((o) => o.status === "entregado").length;
   const todayPending = todayOrders.filter((o) => o.status !== "entregado").length;
+  const todayOrderCount = todayDelivered;
 
-  const todayOrderIds = new Set(todayOrders.map((o) => o.id));
+  const todayDeliveredIds = new Set(
+    todayOrders.filter((o) => o.status === "entregado").map((o) => o.id),
+  );
   const todayRevenue = weekOrderItems
-    .filter((item) => todayOrderIds.has(item.order_id))
+    .filter((item) => todayDeliveredIds.has(item.order_id))
     .reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
-  const weekOrderCount = (rawWeekOrders ?? []).length;
-  const weekRevenue = weekOrderItems.reduce(
-    (sum, item) => sum + Number(item.unit_price) * Number(item.quantity),
-    0,
+  const weekDeliveredIds = new Set(
+    weekOrders.filter((o) => o.status === "entregado").map((o) => o.id),
   );
+  const weekOrderCount = weekDeliveredIds.size;
+  const weekRevenue = weekOrderItems
+    .filter((item) => weekDeliveredIds.has(item.order_id))
+    .reduce((sum, item) => sum + Number(item.unit_price) * Number(item.quantity), 0);
 
   const productTotals = new Map<string, number>();
   for (const row of topItemRows) {
+    if (!weekDeliveredIds.has(row.order_id)) continue;
     const name = row.menu_items?.name;
     if (!name) continue;
     productTotals.set(name, (productTotals.get(name) ?? 0) + Number(row.quantity));
