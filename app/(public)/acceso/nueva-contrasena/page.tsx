@@ -60,7 +60,7 @@ export default function NuevaContrasenaPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-md px-6 py-16 sm:px-10">
+    <main className="mx-auto min-h-screen w-full max-w-md px-6 py-8 sm:py-14 sm:px-10">
       <span className="rounded-full border border-cordero bg-cordero-card px-4 py-1 text-xs uppercase tracking-[0.2em] text-cordero-espresso opacity-80">
         Cordero Coffee Club
       </span>

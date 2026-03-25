@@ -9,7 +9,7 @@ export default function CartPage() {
   const cart = useCart();
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-6 py-16 sm:px-10">
+    <main className="mx-auto min-h-screen w-full max-w-2xl px-6 py-8 sm:py-14 sm:px-10">
       <Link
         href="/pedido"
         className="text-sm text-cordero-espresso underline opacity-60 hover:opacity-90"

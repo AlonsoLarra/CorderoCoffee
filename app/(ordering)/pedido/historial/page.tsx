@@ -74,12 +74,12 @@ export default async function OrderHistoryPage() {
 
   if (!user) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
+      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-8 sm:py-14 sm:px-10">
         <h1 className="font-heading text-4xl text-cordero-espresso">Historial de pedidos</h1>
         <p className="mt-4 text-cordero-espresso opacity-80">
           Inicia sesión para ver el historial de tus pedidos.
         </p>
-        <div className="mt-8 flex gap-4">
+        <div className="mt-8 flex flex-wrap gap-4">
           <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso">
             Iniciar sesión
           </Link>
@@ -201,7 +201,7 @@ export default async function OrderHistoryPage() {
         </ol>
       )}
 
-      <div className="mt-10 flex gap-4">
+      <div className="mt-10 flex flex-wrap gap-4">
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/pedido">
           Hacer pedido
         </Link>

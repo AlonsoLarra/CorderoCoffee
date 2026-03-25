@@ -106,7 +106,7 @@ export default function PublicHomePage() {
       </section>
 
       {/* ── HOW IT WORKS ───────────────────────────────────────── */}
-      <section id="nosotros" className="px-6 py-28 sm:px-14">
+      <section id="nosotros" className="px-6 py-16 sm:py-28 sm:px-14">
         <div className="mx-auto max-w-5xl">
           {/* Section label */}
           <div className="mb-20 flex items-center gap-5">
@@ -171,7 +171,7 @@ export default function PublicHomePage() {
       </section>
 
       {/* ── MANIFESTO ──────────────────────────────────────────── */}
-      <section className="bg-cordero-espresso px-6 py-28 sm:px-14">
+      <section className="bg-cordero-espresso px-6 py-16 sm:py-28 sm:px-14">
         <div className="mx-auto max-w-3xl text-center">
           {/* Official lamb icon — cream version on dark bg */}
           <div className="mx-auto mb-10 h-14 w-14 opacity-30">
@@ -184,10 +184,8 @@ export default function PublicHomePage() {
               unoptimized
             />
           </div>
-          <p className="font-heading text-3xl leading-[1.35] text-cordero-cream sm:text-4xl md:text-[2.75rem]">
-            &ldquo;Hecho con cuidado,
-            <br />
-            para quien sabe apreciarlo.&rdquo;
+          <p className="font-heading text-2xl leading-[1.35] text-balance text-cordero-cream sm:text-4xl md:text-[2.75rem]">
+            &ldquo;Hecho con cuidado, para quien sabe apreciarlo.&rdquo;
           </p>
           <div
             className="mx-auto my-10 h-px w-12"

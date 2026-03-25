@@ -141,15 +141,17 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
                   <button
                     type="button"
                     onClick={() => updateQuantity(idx, line.quantity - 1)}
-                    className="rounded-full border border-cordero px-2 text-xs"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cordero text-sm"
+                    aria-label="Quitar uno"
                   >
-                    -
+                    −
                   </button>
-                  <span className="text-sm">{line.quantity}</span>
+                  <span className="min-w-[1.25rem] text-center text-sm">{line.quantity}</span>
                   <button
                     type="button"
                     onClick={() => updateQuantity(idx, line.quantity + 1)}
-                    className="rounded-full border border-cordero px-2 text-xs"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cordero text-sm"
+                    aria-label="Agregar uno"
                   >
                     +
                   </button>
