@@ -31,7 +31,7 @@ export default async function PublicHomePage() {
                 type="submit"
                 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
               >
-                {COPY.auth.signOut}
+                {COPY.actions.signOut}
               </button>
             </form>
           ) : (
@@ -246,7 +246,7 @@ export default async function PublicHomePage() {
                 className="text-[10px] uppercase tracking-[0.2em] transition-opacity duration-300 hover:opacity-70"
                 style={{ color: "hsl(34 26% 88% / 0.32)" }}
               >
-                {COPY.auth.signOut}
+                {COPY.actions.signOut}
               </button>
             </form>
           ) : (
