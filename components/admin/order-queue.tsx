@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast-provider";
+import type { SelectedModifier } from "@/lib/types/checkout";
 import type { OrderStatus, PaymentMethod, PickupType } from "@/lib/types/domain";
 
 export type AdminOrderCard = {
@@ -15,6 +16,7 @@ export type AdminOrderCard = {
   paymentMethod: PaymentMethod;
   pickupTime: string | null;
   notes: string | null;
+  items: { quantity: number; name: string; modifiers: SelectedModifier[] }[];
 };
 
 type OrderQueueProps = {
@@ -112,7 +114,29 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
         ) : null}
       </div>
 
-      <div className="mt-2 space-y-0.5 text-xs text-cordero-espresso opacity-80">
+      {order.items.length > 0 ? (
+        <ul className="mt-2 space-y-1.5">
+          {order.items.map((item, i) => (
+            <li key={i}>
+              <div className="flex items-baseline gap-1.5 text-sm font-medium text-cordero-espresso">
+                <span className="min-w-[1.25rem] text-right text-xs opacity-60">{item.quantity}×</span>
+                <span>{item.name}</span>
+              </div>
+              {item.modifiers.length > 0 ? (
+                <ul className="ml-[1.75rem] mt-0.5 space-y-0.5">
+                  {item.modifiers.map((mod, j) => (
+                    <li key={j} className="text-xs text-cordero-espresso opacity-70">
+                      {mod.modifierName}: <span className="font-medium opacity-100">{mod.selectedOption}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-2 space-y-0.5 text-xs text-cordero-espresso opacity-60">
         <p>{pickupLabel[order.pickupType]} · {paymentLabel[order.paymentMethod]}</p>
         <p>Creado: {formatTime(order.createdAt)}</p>
         {order.pickupTime ? <p>Retiro: {formatTime(order.pickupTime)}</p> : null}
