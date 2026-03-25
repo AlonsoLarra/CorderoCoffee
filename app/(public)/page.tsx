@@ -1,9 +1,16 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { signOutAction } from "@/app/(public)/acceso/actions";
 import { COPY } from "@/lib/copy";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function PublicHomePage() {
+export default async function PublicHomePage() {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
     <main>
       {/* ── NAVIGATION ─────────────────────────────────────────── */}
@@ -18,12 +25,23 @@ export default function PublicHomePage() {
           >
             Acerca de nosotros
           </Link>
-          <Link
-            href="/acceso"
-            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
-          >
-            Iniciar sesión
-          </Link>
+          {user ? (
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+              >
+                {COPY.auth.signOut}
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/acceso"
+              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+            >
+              Iniciar sesión
+            </Link>
+          )}
         </nav>
       </header>
 
@@ -221,13 +239,25 @@ export default function PublicHomePage() {
           >
             © {new Date().getFullYear()} — Cordero Coffee Club
           </span>
-          <Link
-            href="/acceso"
-            className="text-[10px] uppercase tracking-[0.2em] transition-opacity duration-300 hover:opacity-70"
-            style={{ color: "hsl(34 26% 88% / 0.32)" }}
-          >
-            Iniciar sesión
-          </Link>
+          {user ? (
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                className="text-[10px] uppercase tracking-[0.2em] transition-opacity duration-300 hover:opacity-70"
+                style={{ color: "hsl(34 26% 88% / 0.32)" }}
+              >
+                {COPY.auth.signOut}
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/acceso"
+              className="text-[10px] uppercase tracking-[0.2em] transition-opacity duration-300 hover:opacity-70"
+              style={{ color: "hsl(34 26% 88% / 0.32)" }}
+            >
+              Iniciar sesión
+            </Link>
+          )}
         </div>
       </footer>
     </main>

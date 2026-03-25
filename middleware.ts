@@ -46,37 +46,40 @@ export async function middleware(request: NextRequest) {
     },
   );
 
+  // Always call getUser() to refresh the session cookie on every request.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return redirectToHome(request);
-  }
+  // Admin-only protection
+  if (request.nextUrl.pathname.startsWith("/admin")) {
+    if (!user) {
+      return redirectToHome(request);
+    }
 
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (error) {
-    return redirectToHome(request);
-  }
+    if (error || !profile) {
+      return redirectToHome(request);
+    }
 
-  if (!profile) {
-    return redirectToHome(request);
-  }
+    const typedProfile = profile as unknown as { role: "guest" | "customer" | "admin" | "super_admin" };
 
-  const typedProfile = profile as unknown as { role: "guest" | "customer" | "admin" | "super_admin" };
-
-  if (typedProfile.role !== "admin" && typedProfile.role !== "super_admin") {
-    return redirectToHome(request);
+    if (typedProfile.role !== "admin" && typedProfile.role !== "super_admin") {
+      return redirectToHome(request);
+    }
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: [
+    // Run on all routes except Next.js internals and static files
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

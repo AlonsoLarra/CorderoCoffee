@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { signInAction } from "@/app/(public)/acceso/actions";
 import { COPY } from "@/lib/copy";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type AccessPageProps = {
   searchParams?: {
@@ -10,7 +12,15 @@ type AccessPageProps = {
   };
 };
 
-export default function AccessPage({ searchParams }: AccessPageProps) {
+export default async function AccessPage({ searchParams }: AccessPageProps) {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/pedido");
+  }
   const errorMessage = searchParams?.error;
   const successMessage = searchParams?.success;
 
