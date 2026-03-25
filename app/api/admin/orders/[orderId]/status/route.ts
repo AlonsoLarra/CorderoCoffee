@@ -159,8 +159,12 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
         const typedProfileData = profileData as unknown as { reward_points: number } | null;
         const currentPoints = typedProfileData?.reward_points ?? 0;
 
-        await supabase
-          .from("profiles")
+        const profilesTable = supabase.from("profiles") as unknown as {
+          update: (values: Record<string, unknown>) => {
+            eq: (column: string, value: string) => Promise<unknown>;
+          };
+        };
+        await profilesTable
           .update({ reward_points: currentPoints + points, updated_at: new Date().toISOString() })
           .eq("id", typedOrderForPoints.user_id);
       } catch {
