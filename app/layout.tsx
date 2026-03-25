@@ -21,6 +21,10 @@ const bodyFont = Work_Sans({
 export const metadata: Metadata = {
   title: "Cordero Coffee Club",
   description: "Pedidos en linea y administracion para Cordero Coffee Club.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
