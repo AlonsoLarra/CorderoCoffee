@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Cordero Coffee",
+    "slug": "cordero-coffee",
+    "version": "1.0.0",
+    "scheme": "cordero",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#E8D5C0",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.corderocoffee.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E8D5C0"
+      },
+      "package": "com.corderocoffee.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
