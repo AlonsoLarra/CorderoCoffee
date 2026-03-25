@@ -4,12 +4,16 @@ import Link from "next/link";
 import { signOutAction } from "@/app/(public)/acceso/actions";
 import { COPY } from "@/lib/copy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 
 export default async function PublicHomePage() {
   const supabase = createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const role = user ? await getUserRole(user.id) : null;
+  const isAdmin = isAdminRole(role);
 
   return (
     <main>
@@ -25,6 +29,14 @@ export default async function PublicHomePage() {
           >
             Acerca de nosotros
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+            >
+              Consola admin
+            </Link>
+          )}
           {user ? (
             <form action={signOutAction}>
               <button
