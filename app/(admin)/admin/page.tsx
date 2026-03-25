@@ -1,15 +1,10 @@
 import Link from "next/link";
 
-import { MenuManager } from "@/components/admin/menu-manager";
-import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
-import { ReportsPanel } from "@/components/admin/reports-panel";
-import { UserManager } from "@/components/admin/user-manager";
-import { WalkinOrderForm } from "@/components/admin/walkin-order-form";
+import { AdminTabs } from "@/components/admin/admin-tabs";
+import type { AdminOrderCard } from "@/components/admin/order-queue";
 import { COPY } from "@/lib/copy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { OrderStatus } from "@/lib/types/domain";
-
-const operationalStatuses: OrderStatus[] = ["pendiente", "aceptado", "preparando", "listo"];
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +20,7 @@ export default async function AdminPage() {
     : { data: null };
 
   const currentRole = (currentProfile as unknown as { role?: string } | null)?.role ?? null;
+  const isSuperAdmin = currentRole === "super_admin";
 
   // --- Report date boundaries ---
   const todayStart = new Date();
@@ -34,8 +30,12 @@ export default async function AdminPage() {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
+  // Cut-off for completed/canceled orders shown in kanban (last 24 h)
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
   const [
-    { data: rawOrders, error },
+    { data: rawActiveOrders },
+    { data: rawRecentDoneOrders },
     { data: rawCategories },
     { data: rawItems },
     { data: rawTodayOrders },
@@ -43,11 +43,20 @@ export default async function AdminPage() {
     { data: rawWeekOrderItems },
     { data: rawTopItems },
   ] = await Promise.all([
+    // Active orders (not terminal)
     supabase
       .from("orders")
       .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes")
-      .in("status", operationalStatuses)
+      .in("status", ["pendiente", "aceptado", "preparando", "listo"])
       .order("created_at", { ascending: true })
+      .limit(100),
+    // Recent completed / canceled (last 24 h)
+    supabase
+      .from("orders")
+      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes")
+      .in("status", ["entregado", "cancelado"])
+      .gte("created_at", oneDayAgo)
+      .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("menu_categories").select("id,name,sort_order,is_active").order("sort_order", { ascending: true }),
     supabase
@@ -76,7 +85,7 @@ export default async function AdminPage() {
       .gte("created_at", sevenDaysAgo.toISOString()),
   ]);
 
-  const orders = (rawOrders ?? []) as unknown as Array<{
+  type RawOrder = {
     id: string;
     status: OrderStatus;
     created_at: string;
@@ -84,9 +93,14 @@ export default async function AdminPage() {
     payment_method: "cash" | "card_pending";
     pickup_time: string | null;
     notes: string | null;
-  }>;
+  };
 
-  const queueItems: AdminOrderCard[] = orders.map((order) => ({
+  const allRawOrders = [
+    ...((rawActiveOrders ?? []) as unknown as RawOrder[]),
+    ...((rawRecentDoneOrders ?? []) as unknown as RawOrder[]),
+  ];
+
+  const queueItems: AdminOrderCard[] = allRawOrders.map((order) => ({
     id: order.id,
     status: order.status,
     createdAt: order.created_at,
@@ -149,49 +163,24 @@ export default async function AdminPage() {
     .slice(0, 5);
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-5xl px-6 py-16 sm:px-10">
+    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-12 sm:px-8">
       <h1 className="font-heading text-3xl text-cordero-espresso sm:text-4xl">{COPY.admin.title}</h1>
+      <p className="mt-2 max-w-2xl text-sm text-cordero-espresso opacity-70">{COPY.admin.description}</p>
 
-      <p className="mt-3 max-w-2xl text-cordero-espresso opacity-80">{COPY.admin.description}</p>
-
-      <h2 className="mt-8 font-heading text-2xl text-cordero-espresso">{COPY.admin.queueTitle}</h2>
-      <p className="mt-2 text-sm text-cordero-espresso opacity-80">{COPY.admin.queueDescription}</p>
-
-      {error ? (
-        <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
-          <p className="text-sm text-cordero-espresso opacity-75">
-            No pudimos cargar la cola de pedidos.
-          </p>
-        </div>
-      ) : queueItems.length === 0 ? (
-        <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
-          <p className="text-sm text-cordero-espresso opacity-75">{COPY.admin.emptyQueue}</p>
-        </div>
-      ) : (
-        <OrderQueue orders={queueItems} />
-      )}
-
-      <WalkinOrderForm
-        items={items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          price: Number(item.price),
-          is_active: item.is_active,
-        }))}
-      />
-
-      <MenuManager categories={categories} items={items.map((item) => ({ ...item, price: Number(item.price) }))} />
-
-      {currentRole === "super_admin" && <UserManager />}
-
-      <ReportsPanel
-        todayOrderCount={todayOrderCount}
-        todayRevenue={todayRevenue}
-        todayDelivered={todayDelivered}
-        todayPending={todayPending}
-        weekOrderCount={weekOrderCount}
-        weekRevenue={weekRevenue}
-        topProducts={topProducts}
+      <AdminTabs
+        categories={categories}
+        isSuperAdmin={isSuperAdmin}
+        items={items.map((item) => ({ ...item, price: Number(item.price) }))}
+        orders={queueItems}
+        reports={{
+          todayOrderCount,
+          todayRevenue,
+          todayDelivered,
+          todayPending,
+          weekOrderCount,
+          weekRevenue,
+          topProducts,
+        }}
       />
 
       <Link className="mt-8 inline-block rounded-full border border-cordero px-5 py-2 text-sm" href="/">
