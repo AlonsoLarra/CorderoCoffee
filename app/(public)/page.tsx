@@ -23,12 +23,6 @@ export default async function PublicHomePage() {
           Cordero
         </span>
         <nav className="flex items-center gap-6 sm:gap-8">
-          <Link
-            href="#nosotros"
-            className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100 sm:block"
-          >
-            Acerca de nosotros
-          </Link>
           {isAdmin && (
             <Link
               href="/admin"
@@ -110,121 +104,6 @@ export default async function PublicHomePage() {
           <Link
             href="/pedido"
             className="bg-cordero-espresso px-10 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-cordero-cream transition-opacity duration-300 hover:opacity-80"
-          >
-            {COPY.actions.startOrder}
-          </Link>
-          <Link
-            href="#nosotros"
-            className="px-10 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-cordero-espresso transition-opacity duration-300 hover:opacity-50"
-            style={{ border: "1px solid hsl(22 38% 18% / 0.18)" }}
-          >
-            Conocer más
-          </Link>
-        </div>
-
-        {/* Scroll whisper */}
-        <div
-          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-          style={{ opacity: 0.22 }}
-          aria-hidden
-        >
-          <span className="text-[8px] uppercase tracking-[0.3em] text-cordero-espresso">
-            scroll
-          </span>
-          <div className="h-8 w-px bg-cordero-espresso" />
-        </div>
-      </section>
-
-      {/* ── HOW IT WORKS ───────────────────────────────────────── */}
-      <section id="nosotros" className="px-6 py-16 sm:py-28 sm:px-14">
-        <div className="mx-auto max-w-5xl">
-          {/* Section label */}
-          <div className="mb-20 flex items-center gap-5">
-            <div
-              className="h-px flex-1"
-              style={{ background: "hsl(22 38% 18% / 0.1)" }}
-            />
-            <span
-              className="text-[9px] font-semibold uppercase tracking-[0.36em]"
-              style={{ color: "hsl(22 38% 18% / 0.32)" }}
-            >
-              Cómo funciona
-            </span>
-            <div
-              className="h-px flex-1"
-              style={{ background: "hsl(22 38% 18% / 0.1)" }}
-            />
-          </div>
-
-          <div className="grid gap-14 md:grid-cols-3 md:gap-10">
-            {[
-              {
-                n: "01",
-                title: "Elige en línea",
-                body: "Explora el menú y arma tu pedido desde donde estés, con calma y sin prisa.",
-              },
-              {
-                n: "02",
-                title: "Elige tu momento",
-                body: "Reserva tu horario de recolección. Lo tenemos listo en punto.",
-              },
-              {
-                n: "03",
-                title: "Llega y recoge",
-                body: "Sigue el estado en tiempo real. Tu bebida, lista en su punto al llegar.",
-              },
-            ].map((f) => (
-              <article key={f.n} className="flex flex-col">
-                <span
-                  className="mb-5 font-heading text-6xl font-medium leading-none"
-                  style={{ color: "hsl(22 38% 18% / 0.06)" }}
-                >
-                  {f.n}
-                </span>
-                <div
-                  className="mb-5 h-px w-8"
-                  style={{ background: "hsl(19 47% 47% / 0.55)" }}
-                />
-                <h3 className="mb-3 font-heading text-xl text-cordero-espresso">
-                  {f.title}
-                </h3>
-                <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: "hsl(22 38% 18% / 0.52)" }}
-                >
-                  {f.body}
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── MANIFESTO ──────────────────────────────────────────── */}
-      <section className="bg-cordero-espresso px-6 py-16 sm:py-28 sm:px-14">
-        <div className="mx-auto max-w-3xl text-center">
-          {/* Official lamb icon — cream version on dark bg */}
-          <div className="mx-auto mb-10 h-14 w-14 opacity-30">
-            <Image
-              src="/icono-crema.svg"
-              alt=""
-              width={621}
-              height={736}
-              className="h-full w-full"
-              unoptimized
-            />
-          </div>
-          <p className="font-heading text-2xl leading-[1.35] text-balance text-cordero-cream sm:text-4xl md:text-[2.75rem]">
-            &ldquo;Hecho con cuidado, para quien sabe apreciarlo.&rdquo;
-          </p>
-          <div
-            className="mx-auto my-10 h-px w-12"
-            style={{ background: "hsl(34 26% 88% / 0.2)" }}
-          />
-          <Link
-            href="/pedido"
-            className="inline-block px-10 py-4 text-[10px] font-bold uppercase tracking-[0.22em] text-cordero-cream transition-opacity duration-300 hover:opacity-60"
-            style={{ border: "1px solid hsl(34 26% 88% / 0.28)" }}
           >
             {COPY.actions.startOrder}
           </Link>
