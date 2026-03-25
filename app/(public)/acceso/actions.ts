@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 
 function getStringValue(value: FormDataEntryValue | null): string {
   if (typeof value !== "string") {
@@ -37,13 +38,14 @@ export async function signInAction(formData: FormData): Promise<void> {
   }
 
   const supabase = createSupabaseServerClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     toAccessError("No pudimos iniciar sesión con esos datos.");
   }
 
-  redirect("/pedido");
+  const role = authData?.user ? await getUserRole(authData.user.id) : null;
+  redirect(isAdminRole(role) ? "/admin" : "/pedido");
 }
 
 export async function signUpAction(formData: FormData): Promise<void> {

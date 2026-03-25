@@ -4,6 +4,7 @@ import { LocalOrdersPanel } from "@/components/ordering/local-orders-panel";
 import { OrderingShell } from "@/components/ordering/ordering-shell";
 import { COPY } from "@/lib/copy";
 import { getActiveMenu, type MenuCategoryWithItems } from "@/lib/services/menu";
+import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function OrderingPage() {
   let userEmail: string | null = null;
   let profileName: string | null = null;
   let rewardPoints: number | null = null;
+  let isAdmin = false;
 
   try {
     const supabase = createSupabaseServerClient();
@@ -25,11 +27,11 @@ export default async function OrderingPage() {
     if (user) {
       userEmail = user.email ?? null;
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name,reward_points")
-        .eq("id", user.id)
-        .maybeSingle();
+      const [{ data: profile }, role] = await Promise.all([
+        supabase.from("profiles").select("name,reward_points").eq("id", user.id).maybeSingle(),
+        getUserRole(user.id),
+      ]);
+      isAdmin = isAdminRole(role);
 
       if (profile) {
         const typedProfile = profile as unknown as { name: string | null; reward_points: number };
@@ -102,6 +104,11 @@ export default async function OrderingPage() {
         <Link className="text-sm underline" href="/pedido/historial">
           {COPY.ordering.historialLink}
         </Link>
+        {isAdmin && (
+          <Link className="text-sm underline" href="/admin">
+            {COPY.actions.openAdmin}
+          </Link>
+        )}
       </div>
     </main>
   );
