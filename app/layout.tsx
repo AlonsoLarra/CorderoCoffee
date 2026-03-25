@@ -3,6 +3,7 @@ import { Lora, Work_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { GlobalOrderNotifier } from "@/components/ordering/global-order-notifier";
 
 import "./globals.css";
 
@@ -41,7 +42,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${headingFont.variable} ${bodyFont.variable} bg-cordero-cream text-cordero-espresso antialiased`}>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          {children}
+          <GlobalOrderNotifier />
+        </ToastProvider>
         <Analytics />
       </body>
     </html>
