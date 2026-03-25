@@ -64,12 +64,12 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
 
   if (!user) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
+      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-8 sm:py-14 sm:px-10">
         <h1 className="font-heading text-4xl text-cordero-espresso">Seguimiento de pedido</h1>
         <p className="mt-4 text-cordero-espresso opacity-80">
           Inicia sesión para ver el estado de tus pedidos.
         </p>
-        <div className="mt-8 flex gap-4">
+        <div className="mt-8 flex flex-wrap gap-4">
           <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso">
             Ir a acceso
           </Link>
@@ -89,7 +89,7 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
 
   if (orderError || !orderData) {
     return (
-      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
+      <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-8 sm:py-14 sm:px-10">
         <h1 className="font-heading text-4xl text-cordero-espresso">Pedido no encontrado</h1>
         <p className="mt-4 text-cordero-espresso opacity-80">
           No encontramos un pedido con ese identificador dentro de tu sesión.
@@ -117,7 +117,7 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
         Estado de pedido
       </span>
 
-      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso">Pedido {order.id}</h1>
+      <h1 className="mt-5 font-heading text-2xl text-cordero-espresso break-all sm:text-4xl">Pedido {order.id}</h1>
       <p className="mt-3 text-cordero-espresso opacity-85">
         Estado actual: <strong>{statusLabel[order.status]}</strong>
       </p>
@@ -155,7 +155,7 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
         </ol>
       </div>
 
-      <div className="mt-8 flex gap-4">
+      <div className="mt-8 flex flex-wrap gap-4">
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/pedido">
           Volver al menú
         </Link>

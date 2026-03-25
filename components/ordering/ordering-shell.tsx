@@ -192,7 +192,7 @@ export function OrderingShell({ categories }: OrderingShellProps) {
         <button
           type="button"
           onClick={() => setIsDrawerOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full bg-cordero-espresso px-5 py-3 text-sm text-cordero-cream shadow-lg"
+          className="bottom-safe-6 fixed right-4 z-40 flex items-center gap-2.5 rounded-full bg-cordero-espresso px-5 py-3 text-sm text-cordero-cream shadow-lg sm:right-6"
         >
           <span>Ver carrito</span>
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cordero-cream text-xs font-bold text-cordero-espresso">

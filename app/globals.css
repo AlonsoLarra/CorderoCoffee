@@ -14,6 +14,10 @@
   --radius-md: 0.75rem;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-body), sans-serif;
   background:
@@ -21,6 +25,14 @@ body {
     radial-gradient(circle at 88% 6%, hsl(var(--color-terracotta) / 0.18), transparent 28%),
     hsl(var(--color-cream));
   color: hsl(var(--color-espresso));
+  overflow-x: hidden;
+}
+
+/* Prevent iOS auto-zoom on input/select focus (requires font-size >= 16px) */
+input,
+textarea,
+select {
+  font-size: max(1rem, 16px);
 }
 
 @layer utilities {
@@ -54,5 +66,10 @@ body {
 
   .font-heading {
     font-family: var(--font-heading), serif;
+  }
+
+  /* iOS safe-area for fixed bottom elements (notch / home indicator) */
+  .bottom-safe-6 {
+    bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)));
   }
 }
