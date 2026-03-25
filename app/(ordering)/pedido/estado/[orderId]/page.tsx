@@ -26,6 +26,13 @@ type OrderLogRecord = {
   changed_at: string;
 };
 
+type OrderItem = {
+  id: string;
+  quantity: number;
+  unit_price: number;
+  menu_items: { name: string } | null;
+};
+
 const statusLabel: Record<OrderStatus, string> = {
   pendiente: "Pendiente",
   aceptado: "Aceptado",
@@ -52,6 +59,14 @@ function formatDate(value: string): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function formatPrice(value: number): string {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 export const dynamic = "force-dynamic";
@@ -81,11 +96,23 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
     );
   }
 
-  const { data: orderData, error: orderError } = await supabase
-    .from("orders")
-    .select("id,status,pickup_type,payment_method,pickup_time,notes,created_at")
-    .eq("id", params.orderId)
-    .maybeSingle();
+  const [{ data: orderData, error: orderError }, { data: rawLogs }, { data: rawItems }] =
+    await Promise.all([
+      supabase
+        .from("orders")
+        .select("id,status,pickup_type,payment_method,pickup_time,notes,created_at")
+        .eq("id", params.orderId)
+        .maybeSingle(),
+      supabase
+        .from("order_status_log")
+        .select("id,status,changed_at")
+        .eq("order_id", params.orderId)
+        .order("changed_at", { ascending: true }),
+      supabase
+        .from("order_items")
+        .select("id,quantity,unit_price,menu_items(name)")
+        .eq("order_id", params.orderId),
+    ]);
 
   if (orderError || !orderData) {
     return (
@@ -102,14 +129,9 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
   }
 
   const order = orderData as unknown as OrderRecord;
-
-  const { data: rawLogs } = await supabase
-    .from("order_status_log")
-    .select("id,status,changed_at")
-    .eq("order_id", params.orderId)
-    .order("changed_at", { ascending: true });
-
   const logs = (rawLogs ?? []) as unknown as OrderLogRecord[];
+  const items = (rawItems ?? []) as unknown as OrderItem[];
+  const total = items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-6 py-16 sm:px-10">
@@ -117,13 +139,37 @@ export default async function OrderStatusPage({ params }: StatusPageProps) {
         Estado de pedido
       </span>
 
-      <h1 className="mt-5 font-heading text-2xl text-cordero-espresso break-all sm:text-4xl">Pedido {order.id}</h1>
+      <h1 className="mt-5 font-heading text-2xl text-cordero-espresso sm:text-4xl">
+        Pedido <span className="font-mono">#{order.id.slice(0, 8)}</span>
+      </h1>
       <p className="mt-3 text-cordero-espresso opacity-85">
         Estado actual: <strong>{statusLabel[order.status]}</strong>
       </p>
       <OrderStatusRealtime orderId={params.orderId} />
 
-      <div className="mt-8 grid gap-4 rounded-2xl border border-cordero bg-cordero-card p-5 sm:grid-cols-2">
+      {items.length > 0 && (
+        <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-5">
+          <p className="text-xs uppercase tracking-[0.15em] text-cordero-espresso opacity-60">
+            Tu pedido
+          </p>
+          <ul className="mt-3 space-y-2">
+            {items.map((item) => (
+              <li key={item.id} className="flex justify-between text-sm text-cordero-espresso">
+                <span>
+                  {item.quantity}× {item.menu_items?.name ?? "Producto"}
+                </span>
+                <span className="opacity-70">{formatPrice(item.unit_price * item.quantity)}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex justify-between border-t border-cordero pt-3 text-sm font-medium text-cordero-espresso">
+            <span>Total</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 grid gap-4 rounded-2xl border border-cordero bg-cordero-card p-5 sm:grid-cols-2">
         <p className="text-sm">Creado: {formatDate(order.created_at)}</p>
         <p className="text-sm">Retiro: {pickupLabel[order.pickup_type]}</p>
         <p className="text-sm">Pago: {paymentLabel[order.payment_method]}</p>
