@@ -4,7 +4,10 @@ import { AdminTabs } from "@/components/admin/admin-tabs";
 import type { AdminOrderCard } from "@/components/admin/order-queue";
 import { COPY } from "@/lib/copy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { OrderStatus } from "@/lib/types/domain";
+import type { AdminTabKey, OrderStatus } from "@/lib/types/domain";
+
+// All tabs super_admin can always access
+const SUPER_ADMIN_TABS = new Set<AdminTabKey>(["pedidos", "alta", "menu", "usuarios", "reportes", "permisos"]);
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +22,25 @@ export default async function AdminPage() {
     ? await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
     : { data: null };
 
-  const currentRole = (currentProfile as unknown as { role?: string } | null)?.role ?? null;
+  const currentRole = (currentProfile as unknown as { role?: string } | null)?.role ?? "customer";
   const isSuperAdmin = currentRole === "super_admin";
+
+  // Determine which tabs this user can access
+  let allowedTabs: Set<AdminTabKey>;
+  if (isSuperAdmin) {
+    allowedTabs = SUPER_ADMIN_TABS;
+  } else {
+    // Load from DB for admin and employee
+    const { data: permRows } = await supabase
+      .from("role_permissions")
+      .select("tab_key, allowed")
+      .eq("role", currentRole)
+      .eq("allowed", true);
+
+    type PermRow = { tab_key: string; allowed: boolean };
+    const rows = (permRows ?? []) as unknown as PermRow[];
+    allowedTabs = new Set<AdminTabKey>(rows.map((r) => r.tab_key as AdminTabKey));
+  }
 
   // --- Report date boundaries ---
   const todayStart = new Date();
@@ -189,8 +209,9 @@ export default async function AdminPage() {
       <p className="mt-2 max-w-2xl text-sm text-cordero-espresso opacity-70">{COPY.admin.description}</p>
 
       <AdminTabs
+        allowedTabs={allowedTabs}
         categories={categories}
-        isSuperAdmin={isSuperAdmin}
+        currentRole={currentRole}
         items={items.map((item) => ({ ...item, price: Number(item.price) }))}
         orders={queueItems}
         reports={{

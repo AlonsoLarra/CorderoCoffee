@@ -67,9 +67,13 @@ export async function middleware(request: NextRequest) {
       return redirectToHome(request);
     }
 
-    const typedProfile = profile as unknown as { role: "guest" | "customer" | "admin" | "super_admin" };
+    const typedProfile = profile as unknown as { role: "guest" | "customer" | "employee" | "admin" | "super_admin" };
 
-    if (typedProfile.role !== "admin" && typedProfile.role !== "super_admin") {
+    if (
+      typedProfile.role !== "admin" &&
+      typedProfile.role !== "super_admin" &&
+      typedProfile.role !== "employee"
+    ) {
       return redirectToHome(request);
     }
   }

@@ -14,10 +14,25 @@ type UserRow = {
 
 const ROLE_LABELS: Record<string, string> = {
   customer: "Cliente",
+  employee: "Empleado",
   admin: "Admin",
   super_admin: "Super admin",
   guest: "Invitado",
 };
+
+// Roles that can be cycled through when clicking the role button
+const CYCLE_ROLES = ["customer", "employee", "admin"] as const;
+type CyclableRole = (typeof CYCLE_ROLES)[number];
+
+function nextRole(current: string): CyclableRole {
+  const idx = CYCLE_ROLES.indexOf(current as CyclableRole);
+  return CYCLE_ROLES[(idx + 1) % CYCLE_ROLES.length];
+}
+
+function roleActionLabel(current: string): string {
+  const next = nextRole(current);
+  return `Cambiar a ${ROLE_LABELS[next] ?? next}`;
+}
 
 export function UserManager() {
   const router = useRouter();
@@ -37,7 +52,7 @@ export function UserManager() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function setRole(userId: string, newRole: "admin" | "customer") {
+  async function setRole(userId: string, newRole: CyclableRole) {
     const response = await fetch(`/api/admin/users/${userId}/role`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -50,10 +65,7 @@ export function UserManager() {
       return;
     }
 
-    showToast(
-      newRole === "admin" ? "Usuario promovido a Admin." : "Rol retirado.",
-      "success",
-    );
+    showToast(`Rol actualizado a ${ROLE_LABELS[newRole] ?? newRole}.`, "success");
 
     setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
 
@@ -68,9 +80,9 @@ export function UserManager() {
 
   return (
     <section className="mt-10">
-      <h2 className="font-heading text-2xl text-cordero-espresso">Gestión de admins</h2>
+      <h2 className="font-heading text-2xl text-cordero-espresso">Gestión de usuarios</h2>
       <p className="mt-2 text-sm text-cordero-espresso opacity-80">
-        Asigna o retira acceso de administrador a cualquier usuario.
+        Asigna roles a los usuarios: Cliente, Empleado o Admin.
       </p>
 
       <div className="mt-4 rounded-2xl border border-cordero bg-cordero-card p-5">
@@ -105,10 +117,10 @@ export function UserManager() {
                   <button
                     className="shrink-0 rounded-full border border-cordero px-3 py-1 text-xs disabled:opacity-50"
                     disabled={isPending}
-                    onClick={() => setRole(user.id, user.role === "admin" ? "customer" : "admin")}
+                    onClick={() => setRole(user.id, nextRole(user.role))}
                     type="button"
                   >
-                    {user.role === "admin" ? "Retirar admin" : "Hacer admin"}
+                    {roleActionLabel(user.role)}
                   </button>
                 )}
               </li>

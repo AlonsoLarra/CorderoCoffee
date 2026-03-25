@@ -89,7 +89,8 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
     .maybeSingle();
 
   const typedProfile = profile as unknown as { role?: string } | null;
-  if (!typedProfile || (typedProfile.role !== "admin" && typedProfile.role !== "super_admin")) {
+  const allowedRoles = ["admin", "super_admin", "employee"];
+  if (!typedProfile || !allowedRoles.includes(typedProfile.role ?? "")) {
     return NextResponse.json({ error: "No autorizado." }, { status: 403 });
   }
 

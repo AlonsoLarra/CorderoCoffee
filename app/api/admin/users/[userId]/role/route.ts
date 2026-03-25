@@ -4,7 +4,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/types/domain";
 
-const ASSIGNABLE_ROLES: Role[] = ["customer", "admin"];
+const ASSIGNABLE_ROLES: Role[] = ["customer", "employee", "admin"];
 
 async function ensureSuperAdmin() {
   const supabase = createSupabaseServerClient();
