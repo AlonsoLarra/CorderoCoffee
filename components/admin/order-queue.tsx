@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -27,6 +27,7 @@ const statusLabel: Record<OrderStatus, string> = {
   preparando: "Preparando",
   listo: "Listo",
   entregado: "Entregado",
+  cancelado: "Cancelado",
 };
 
 const nextTransitionLabel: Record<OrderStatus, string | null> = {
@@ -35,6 +36,7 @@ const nextTransitionLabel: Record<OrderStatus, string | null> = {
   preparando: "Marcar listo",
   listo: "Marcar entregado",
   entregado: null,
+  cancelado: null,
 };
 
 const nextTransitionStatus: Record<OrderStatus, OrderStatus | null> = {
@@ -43,7 +45,10 @@ const nextTransitionStatus: Record<OrderStatus, OrderStatus | null> = {
   preparando: "listo",
   listo: "entregado",
   entregado: null,
+  cancelado: null,
 };
+
+const cancellableStatuses: OrderStatus[] = ["pendiente", "aceptado", "preparando", "listo"];
 
 const pickupLabel: Record<PickupType, string> = {
   ahora: "Ahora",
@@ -87,6 +92,7 @@ export function OrderQueue({ orders }: OrderQueueProps) {
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -122,6 +128,25 @@ export function OrderQueue({ orders }: OrderQueueProps) {
       void supabase.removeChannel(channel);
     };
   }, [router, startTransition]);
+
+  async function cancelOrder(orderId: string) {
+    setConfirmCancelId(null);
+    const response = await fetch(`/api/admin/orders/${orderId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nextStatus: "cancelado" }),
+    });
+
+    if (!response.ok) {
+      showToast("No pudimos cancelar el pedido.", "error");
+      return;
+    }
+
+    showToast("Pedido cancelado.", "success");
+    startTransition(() => {
+      router.refresh();
+    });
+  }
 
   async function moveStatus(orderId: string, currentStatus: OrderStatus) {
     const nextStatus = nextTransitionStatus[currentStatus];
@@ -190,7 +215,43 @@ export function OrderQueue({ orders }: OrderQueueProps) {
               ) : (
                 <span className="rounded-full border border-cordero px-4 py-2 text-xs">Pedido finalizado</span>
               )}
+
+              {cancellableStatuses.includes(order.status) && (
+                <button
+                  className="rounded-full border border-red-300 px-4 py-2 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  disabled={isPending}
+                  onClick={() => setConfirmCancelId(order.id)}
+                  type="button"
+                >
+                  Cancelar pedido
+                </button>
+              )}
             </div>
+
+            {confirmCancelId === order.id && (
+              <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4">
+                <p className="text-sm font-medium text-red-800">¿Estás seguro de que deseas cancelar este pedido?</p>
+                <p className="mt-1 text-xs text-red-600">Esta acción no se puede deshacer.</p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    className="rounded-full bg-red-700 px-4 py-2 text-xs text-white hover:bg-red-800 disabled:opacity-50"
+                    disabled={isPending}
+                    onClick={() => cancelOrder(order.id)}
+                    type="button"
+                  >
+                    Sí, cancelar
+                  </button>
+                  <button
+                    className="rounded-full border border-cordero px-4 py-2 text-xs hover:bg-cordero-card disabled:opacity-50"
+                    disabled={isPending}
+                    onClick={() => setConfirmCancelId(null)}
+                    type="button"
+                  >
+                    No, volver
+                  </button>
+                </div>
+              </div>
+            )}
           </article>
         );
       })}

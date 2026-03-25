@@ -5,7 +5,8 @@ export type OrderStatus =
   | "aceptado"
   | "preparando"
   | "listo"
-  | "entregado";
+  | "entregado"
+  | "cancelado";
 
 export type OrderType = "online" | "walkin";
 export type PickupType = "ahora" | "agendar" | "al_llegar";

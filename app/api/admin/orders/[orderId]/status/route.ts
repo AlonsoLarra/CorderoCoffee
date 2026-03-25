@@ -10,11 +10,12 @@ type TransitionPayload = {
 };
 
 const allowedTransitions: Record<OrderStatus, OrderStatus[]> = {
-  pendiente: ["aceptado"],
-  aceptado: ["preparando"],
-  preparando: ["listo"],
-  listo: ["entregado"],
+  pendiente: ["aceptado", "cancelado"],
+  aceptado: ["preparando", "cancelado"],
+  preparando: ["listo", "cancelado"],
+  listo: ["entregado", "cancelado"],
   entregado: [],
+  cancelado: [],
 };
 
 function badRequest(message: string) {
@@ -48,7 +49,7 @@ async function notifyCustomerOrderReady(orderId: string): Promise<void> {
 }
 
 function isOrderStatus(value: string): value is OrderStatus {
-  return value === "pendiente" || value === "aceptado" || value === "preparando" || value === "listo" || value === "entregado";
+  return value === "pendiente" || value === "aceptado" || value === "preparando" || value === "listo" || value === "entregado" || value === "cancelado";
 }
 
 export async function PATCH(request: Request, context: { params: { orderId: string } }) {
