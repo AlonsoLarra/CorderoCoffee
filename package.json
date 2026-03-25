@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "smoke": "bash ./scripts/smoke-e2e.sh",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
     "ios:add": "npx cap add ios",
     "ios:sync": "npx cap sync ios",
     "ios:open": "npx cap open ios",
@@ -26,6 +28,7 @@
     "stripe": "^14.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
