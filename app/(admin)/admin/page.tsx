@@ -46,16 +46,16 @@ export default async function AdminPage() {
     // Active orders (not terminal)
     supabase
       .from("orders")
-      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes")
+      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
       .in("status", ["pendiente", "aceptado", "preparando", "listo"])
       .order("created_at", { ascending: true })
       .limit(100),
-    // Recent completed / canceled (last 24 h)
+    // Recent completed / canceled (last 24 h, based on updated_at so recently-delivered orders always show)
     supabase
       .from("orders")
-      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes")
+      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
       .in("status", ["entregado", "cancelado"])
-      .gte("created_at", oneDayAgo)
+      .gte("updated_at", oneDayAgo)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("menu_categories").select("id,name,sort_order,is_active").order("sort_order", { ascending: true }),
@@ -85,6 +85,12 @@ export default async function AdminPage() {
       .gte("created_at", sevenDaysAgo.toISOString()),
   ]);
 
+  type RawOrderItem = {
+    quantity: number;
+    modifiers: unknown[];
+    menu_items: { name: string } | null;
+  };
+
   type RawOrder = {
     id: string;
     status: OrderStatus;
@@ -93,6 +99,7 @@ export default async function AdminPage() {
     payment_method: "cash" | "card_pending";
     pickup_time: string | null;
     notes: string | null;
+    order_items: RawOrderItem[];
   };
 
   const allRawOrders = [
@@ -108,6 +115,11 @@ export default async function AdminPage() {
     paymentMethod: order.payment_method,
     pickupTime: order.pickup_time,
     notes: order.notes,
+    items: (order.order_items ?? []).map((oi) => ({
+      quantity: oi.quantity,
+      name: oi.menu_items?.name ?? "?",
+      modifiers: Array.isArray(oi.modifiers) ? oi.modifiers : [],
+    })),
   }));
 
   const categories = (rawCategories ?? []) as unknown as Array<{

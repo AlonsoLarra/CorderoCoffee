@@ -15,6 +15,7 @@ export type AdminOrderCard = {
   paymentMethod: PaymentMethod;
   pickupTime: string | null;
   notes: string | null;
+  items: { quantity: number; name: string; modifiers: unknown[] }[];
 };
 
 type OrderQueueProps = {
@@ -112,7 +113,18 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
         ) : null}
       </div>
 
-      <div className="mt-2 space-y-0.5 text-xs text-cordero-espresso opacity-80">
+      {order.items.length > 0 ? (
+        <ul className="mt-2 space-y-1">
+          {order.items.map((item, i) => (
+            <li key={i} className="flex items-baseline gap-1.5 text-sm font-medium text-cordero-espresso">
+              <span className="min-w-[1.25rem] text-right text-xs opacity-60">{item.quantity}×</span>
+              <span>{item.name}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <div className="mt-2 space-y-0.5 text-xs text-cordero-espresso opacity-60">
         <p>{pickupLabel[order.pickupType]} · {paymentLabel[order.paymentMethod]}</p>
         <p>Creado: {formatTime(order.createdAt)}</p>
         {order.pickupTime ? <p>Retiro: {formatTime(order.pickupTime)}</p> : null}
