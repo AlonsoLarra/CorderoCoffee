@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useToast } from "@/components/ui/toast-provider";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { CreateOrderRequest, CreateOrderResponse } from "@/lib/types/checkout";
 import type { PaymentMethod, PickupType } from "@/lib/types/domain";
 
@@ -47,6 +48,15 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
 
     setCheckoutError(null);
     setIsSubmitting(true);
+
+    const supabase = createSupabaseBrowserClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setIsSubmitting(false);
+      window.location.href = `/acceso?redirectTo=/pedido/carrito`;
+      return;
+    }
 
     const payload: CreateOrderRequest = {
       lines: lines.map((l) => ({
