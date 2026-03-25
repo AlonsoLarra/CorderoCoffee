@@ -19,12 +19,28 @@ const bodyFont = Work_Sans({
   display: "swap",
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://corderocoffee.com";
+
 export const metadata: Metadata = {
   title: "Cordero Coffee Club",
-  description: "Pedidos en linea y administracion para Cordero Coffee Club.",
+  description: "Ordena tu café favorito en línea. Recoge en tienda sin esperas con Cordero Coffee Club.",
+  metadataBase: new URL(APP_URL),
   icons: {
     icon: "/icon.svg",
     apple: "/icon.svg",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Cordero Coffee Club",
+    title: "Cordero Coffee Club",
+    description: "Ordena tu café favorito en línea. Recoge en tienda sin esperas.",
+    url: APP_URL,
+    locale: "es_MX",
+  },
+  twitter: {
+    card: "summary",
+    title: "Cordero Coffee Club",
+    description: "Ordena tu café favorito en línea. Recoge en tienda sin esperas.",
   },
 };
 
