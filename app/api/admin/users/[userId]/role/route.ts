@@ -48,10 +48,15 @@ export async function PATCH(request: Request, { params }: { params: { userId: st
     return NextResponse.json({ error: "Rol no permitido." }, { status: 400 });
   }
 
-  const { error } = await auth.adminClient
-    .from("profiles")
+  const profilesTable = auth.adminClient.from("profiles") as unknown as {
+    update: (values: Record<string, unknown>) => {
+      eq: (column: string, value: string) => Promise<{ error: unknown }>;
+    };
+  };
+
+  const { error } = (await profilesTable
     .update({ role: newRole })
-    .eq("id", userId);
+    .eq("id", userId)) as { error: unknown };
 
   if (error) {
     return NextResponse.json({ error: "No pudimos actualizar el rol." }, { status: 500 });
