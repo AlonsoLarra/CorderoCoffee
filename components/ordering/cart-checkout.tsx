@@ -20,6 +20,7 @@ type CartHandle = {
 type CartCheckoutProps = {
   cart: CartHandle;
   onOrderSuccess?: (orderId: string) => void;
+  onViewMenu?: () => void;
 };
 
 function formatPrice(value: number): string {
@@ -30,7 +31,7 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
-export function CartCheckout({ cart, onOrderSuccess }: CartCheckoutProps) {
+export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutProps) {
   const { showToast } = useToast();
   const { lines, total, updateQuantity, clearCart } = cart;
 
@@ -119,7 +120,7 @@ export function CartCheckout({ cart, onOrderSuccess }: CartCheckoutProps) {
         {lines.length === 0 ? (
           <li className="text-sm text-cordero-espresso opacity-75">
             Tu carrito está vacío.{" "}
-            <Link href="/pedido" className="underline">
+            <Link href="/pedido" className="underline" onClick={onViewMenu}>
               Ver menú
             </Link>
           </li>

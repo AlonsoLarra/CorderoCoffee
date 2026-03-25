@@ -76,7 +76,7 @@ export function CartDrawer({ isOpen, onClose, cart }: CartDrawerProps) {
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <CartCheckout cart={cart} onOrderSuccess={onClose} />
+          <CartCheckout cart={cart} onOrderSuccess={onClose} onViewMenu={onClose} />
         </div>
       </div>
     </>
