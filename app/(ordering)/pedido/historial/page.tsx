@@ -29,6 +29,7 @@ const statusLabel: Record<OrderStatus, string> = {
   preparando: "Preparando",
   listo: "Listo",
   entregado: "Entregado",
+  cancelado: "Cancelado",
 };
 
 const statusColor: Record<OrderStatus, string> = {
@@ -37,6 +38,7 @@ const statusColor: Record<OrderStatus, string> = {
   preparando: "bg-orange-100 text-orange-800",
   listo: "bg-green-100 text-green-800",
   entregado: "bg-cordero-card text-cordero-espresso",
+  cancelado: "bg-red-100 text-red-800",
 };
 
 const pickupLabel: Record<PickupType, string> = {

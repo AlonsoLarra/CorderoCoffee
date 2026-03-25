@@ -32,6 +32,7 @@ const statusLabel: Record<OrderStatus, string> = {
   preparando: "Preparando",
   listo: "Listo",
   entregado: "Entregado",
+  cancelado: "Cancelado",
 };
 
 const pickupLabel: Record<PickupType, string> = {
