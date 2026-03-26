@@ -28,7 +28,6 @@ const STATUS_ICONS: Record<OrderStatus, string> = {
   preparando: '☕',
   listo: '🔔',
   entregado: '✓',
-  cancelado: '✗',
 };
 
 export default function EstadoScreen() {

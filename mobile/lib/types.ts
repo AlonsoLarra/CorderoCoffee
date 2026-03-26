@@ -33,16 +33,31 @@ export interface CartLine {
   quantity: number;
 }
 
+export type SelectedModifier = {
+  modifierName: string;
+  selectedOption: string;
+};
+
+export type CheckoutLineInput = {
+  itemId: string;
+  quantity: number;
+  modifiers?: SelectedModifier[];
+};
+
 export interface CreateOrderRequest {
-  lines: { itemId: string; quantity: number }[];
+  lines: CheckoutLineInput[];
   pickupType: PickupType;
   paymentMethod: PaymentMethod;
   notes?: string;
   scheduledPickupAt?: string;
+  discountCodeId?: string;
+  discountAmount?: number;
+  pointsRedeemed?: number;
 }
 
 export interface CreateOrderResponse {
   orderId: string;
+  status: string;
 }
 
 export interface Order {

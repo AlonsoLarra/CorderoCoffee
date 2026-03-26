@@ -155,12 +155,11 @@ export default function CartSheet({
                         Fecha y hora
                       </Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: COLORS.espresso }]}
                         placeholder="YYYY-MM-DD HH:MM"
                         placeholderTextColor={COLORS.textMuted}
                         value={scheduledDate}
                         onChangeText={setScheduledDate}
-                        color={COLORS.espresso}
                       />
                     </>
                   ) : null}
@@ -196,14 +195,13 @@ export default function CartSheet({
                     {COPY.ordering.notesLabel}
                   </Text>
                   <TextInput
-                    style={[styles.input, styles.notesInput]}
+                    style={[styles.input, styles.notesInput, { color: COLORS.espresso }]}
                     placeholder={COPY.ordering.notesPlaceholder}
                     placeholderTextColor={COLORS.textMuted}
                     value={notes}
                     onChangeText={setNotes}
                     multiline
                     numberOfLines={3}
-                    color={COLORS.espresso}
                   />
 
                   {/* Total */}
@@ -250,7 +248,10 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     position: 'absolute',
-    inset: 0,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: COLORS.overlay,
   },
   sheetWrapper: {
