@@ -147,26 +147,14 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
     return badRequest(`Transicion invalida desde ${order.status} hacia ${payload.nextStatus}.`);
   }
 
-  const ordersTable = supabase.from("orders") as unknown as {
-    update: (values: Record<string, unknown>) => {
-      eq: (column: string, value: string) => {
-        select: (columns: string) => {
-          maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
-        };
-      };
-    };
-  };
+  const supabaseAdmin = createSupabaseAdminClient();
 
-  const { data: updatedOrder, error: updateError } = (await ordersTable
-    .update({ status: payload.nextStatus })
-    .eq("id", order.id)
-    .select("id,status")
-    .maybeSingle()) as {
-    data: { id: string; status: OrderStatus } | null;
-    error: unknown;
-  };
+  const { error: updateError } = await supabaseAdmin
+    .from("orders")
+    .update({ status: payload.nextStatus } as never)
+    .eq("id", order.id);
 
-  if (updateError || !updatedOrder) {
+  if (updateError) {
     return NextResponse.json({ error: "No pudimos actualizar el estado." }, { status: 500 });
   }
 
@@ -228,7 +216,7 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
   }
 
   return NextResponse.json({
-    orderId: updatedOrder.id,
-    status: updatedOrder.status,
+    orderId: order.id,
+    status: payload.nextStatus,
   });
 }
