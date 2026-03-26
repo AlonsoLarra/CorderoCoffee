@@ -57,7 +57,7 @@ export function LoginBanner({ userEmail, profileName, rewardPoints }: LoginBanne
                     <li className="flex items-start gap-2">
                       <span className="mt-0.5 text-sm">☕</span>
                       <span>
-                        Ganas <strong>1 punto por cada producto</strong> que pidas en tu orden.
+                        Ganas <strong>10 puntos por cada producto</strong> que pidas en tu orden.
                       </span>
                     </li>
                     <li className="flex items-start gap-2">

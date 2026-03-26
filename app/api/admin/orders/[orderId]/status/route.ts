@@ -189,7 +189,7 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
           .eq("order_id", order.id);
 
         const items = (itemsData ?? []) as unknown as { quantity: number }[];
-        const points = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+        const points = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0) * 10;
         if (points <= 0) return;
 
         const { data: profileData } = await supabase
