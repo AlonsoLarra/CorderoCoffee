@@ -43,9 +43,6 @@ export default async function AdminPage() {
     allowedTabs = new Set<AdminTabKey>(rows.map((r) => r.tab_key as AdminTabKey));
   }
 
-  // Cut-off for completed/canceled orders shown in kanban (last 24 h)
-  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
   const supabaseAdmin = createSupabaseAdminClient();
 
   const [
@@ -62,13 +59,12 @@ export default async function AdminPage() {
       .in("status", ["pendiente", "aceptado", "preparando", "listo"])
       .order("created_at", { ascending: true })
       .limit(100),
-    // Recent completed / canceled (last 24 h)
-    supabase
+    // Recent completed / canceled orders (most recent 50)
+    supabaseAdmin
       .from("orders")
       .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
       .in("status", ["entregado", "cancelado"])
-      .gte("updated_at", oneDayAgo)
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: false })
       .limit(50),
     supabase.from("menu_categories").select("id,name,sort_order,is_active").order("sort_order", { ascending: true }),
     supabase
