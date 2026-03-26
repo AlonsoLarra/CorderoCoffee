@@ -35,7 +35,7 @@ async function deductInventory(orderId: string): Promise<void> {
       const deduction = Number(orderItem.quantity) * Number(ingredient.quantity);
 
       // Descontar el stock usando RPC para evitar race conditions
-      await supabaseAdmin.rpc("decrement_inventory_stock", {
+      await (supabaseAdmin as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown> }).rpc("decrement_inventory_stock", {
         p_item_id: ingredient.inventory_item_id,
         p_amount: deduction,
       });
