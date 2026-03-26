@@ -37,6 +37,7 @@ export type Database = {
           reward_points?: number;
           updated_at?: string;
         };
+        Relationships: [];
       };
       menu_categories: {
         Row: {
@@ -61,6 +62,7 @@ export type Database = {
           is_active?: boolean;
           updated_at?: string;
         };
+        Relationships: [];
       };
       menu_items: {
         Row: {
@@ -106,6 +108,15 @@ export type Database = {
           low_stock_alert?: number;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_categories";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       item_modifiers: {
         Row: {
@@ -133,6 +144,15 @@ export type Database = {
           is_required?: boolean;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "item_modifiers_item_id_fkey";
+            columns: ["item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       orders: {
         Row: {
@@ -181,6 +201,22 @@ export type Database = {
           points_redeemed?: number;
           updated_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "orders_discount_code_id_fkey";
+            columns: ["discount_code_id"];
+            isOneToOne: false;
+            referencedRelation: "discount_codes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "orders_shift_id_fkey";
+            columns: ["shift_id"];
+            isOneToOne: false;
+            referencedRelation: "shifts";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       order_items: {
         Row: {
@@ -207,6 +243,22 @@ export type Database = {
           modifiers?: Json;
           unit_price?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_item_id_fkey";
+            columns: ["item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       order_status_log: {
         Row: {
@@ -225,6 +277,15 @@ export type Database = {
           status?: OrderStatus;
           changed_at?: string;
         };
+        Relationships: [
+          {
+            foreignKeyName: "order_status_log_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       shifts: {
         Row: {
@@ -256,6 +317,7 @@ export type Database = {
           notes?: string | null;
           closed_at?: string | null;
         };
+        Relationships: [];
       };
       discount_codes: {
         Row: {
@@ -289,6 +351,7 @@ export type Database = {
           expires_at?: string | null;
           is_active?: boolean;
         };
+        Relationships: [];
       };
       inventory_items: {
         Row: {
@@ -316,6 +379,7 @@ export type Database = {
           minimum_stock?: number | null;
           updated_at?: string;
         };
+        Relationships: [];
       };
       menu_item_ingredients: {
         Row: {
@@ -337,6 +401,22 @@ export type Database = {
           inventory_item_id?: string;
           quantity?: number;
         };
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_ingredients_menu_item_id_fkey";
+            columns: ["menu_item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "menu_item_ingredients_inventory_item_id_fkey";
+            columns: ["inventory_item_id"];
+            isOneToOne: false;
+            referencedRelation: "inventory_items";
+            referencedColumns: ["id"];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
