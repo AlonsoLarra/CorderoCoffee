@@ -23,3 +23,21 @@ export type OrderStatus =
 export type OrderType = "online" | "walkin";
 export type PickupType = "ahora" | "agendar" | "al_llegar";
 export type PaymentMethod = "cash" | "card_pending" | "card_online";
+
+export type InventoryItem = {
+  id: string;
+  name: string;
+  unit: string;
+  current_stock: number;
+  minimum_stock: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MenuItemIngredient = {
+  id: string;
+  menu_item_id: string;
+  inventory_item_id: string;
+  quantity: number;
+  inventory_item: InventoryItem;
+};

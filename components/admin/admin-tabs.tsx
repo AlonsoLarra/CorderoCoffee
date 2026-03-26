@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AdvancedReportsPanel } from "@/components/admin/advanced-reports-panel";
 import { DiscountsPanel } from "@/components/admin/discounts-panel";
+import { InventoryManager } from "@/components/admin/inventory-manager";
 import { InventoryPanel } from "@/components/admin/inventory-panel";
 import { MenuManager } from "@/components/admin/menu-manager";
 import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
@@ -11,7 +12,7 @@ import { RolePermissionsManager } from "@/components/admin/role-permissions-mana
 import { ShiftPanel } from "@/components/admin/shift-panel";
 import { UserManager } from "@/components/admin/user-manager";
 import { WalkinOrderForm } from "@/components/admin/walkin-order-form";
-import type { AdminTabKey } from "@/lib/types/domain";
+import type { AdminTabKey, InventoryItem } from "@/lib/types/domain";
 
 type Category = {
   id: string;
@@ -42,6 +43,7 @@ type AdminTabsProps = {
   orders: AdminOrderCard[];
   categories: Category[];
   items: MenuItem[];
+  inventoryItems: InventoryItem[];
   currentRole: string;
   /** Set of tab keys this user is allowed to see (comes from DB or hardcoded for super_admin) */
   allowedTabs: Set<AdminTabKey>;
@@ -77,6 +79,7 @@ export function AdminTabs({
   orders,
   categories,
   items,
+  inventoryItems,
   currentRole,
   allowedTabs,
 }: AdminTabsProps) {
@@ -138,7 +141,33 @@ export function AdminTabs({
             <p className="text-sm text-cordero-espresso opacity-70">
               Administra categorías y productos del menú activo.
             </p>
-            <MenuManager categories={categories} items={items} />
+            <MenuManager categories={categories} items={items} inventoryItems={inventoryItems} />
+          </div>
+        )}
+
+        {resolvedActive === "inventario" && (
+          <div className="space-y-8">
+            <div>
+              <p className="text-sm text-cordero-espresso opacity-70">
+                Controla el stock de cada producto. Los ítems agotados no se mostrarán a los clientes.
+              </p>
+              <InventoryPanel
+                items={items.map((i) => ({
+                  id: i.id,
+                  name: i.name,
+                  track_stock: i.track_stock,
+                  stock_quantity: i.stock_quantity,
+                  low_stock_alert: i.low_stock_alert,
+                  is_active: i.is_active,
+                }))}
+              />
+            </div>
+            <div>
+              <p className="text-sm text-cordero-espresso opacity-70">
+                Gestiona los insumos y su stock disponible. Define cuánto consume cada producto desde la pestaña Menú.
+              </p>
+              <InventoryManager items={inventoryItems} />
+            </div>
           </div>
         )}
 
@@ -148,24 +177,6 @@ export function AdminTabs({
               Asigna o revoca roles de administrador en la plataforma.
             </p>
             <UserManager />
-          </div>
-        )}
-
-        {resolvedActive === "inventario" && (
-          <div>
-            <p className="text-sm text-cordero-espresso opacity-70">
-              Controla el stock de cada producto. Los ítems agotados no se mostrarán a los clientes.
-            </p>
-            <InventoryPanel
-              items={items.map((i) => ({
-                id: i.id,
-                name: i.name,
-                track_stock: i.track_stock,
-                stock_quantity: i.stock_quantity,
-                low_stock_alert: i.low_stock_alert,
-                is_active: i.is_active,
-              }))}
-            />
           </div>
         )}
 

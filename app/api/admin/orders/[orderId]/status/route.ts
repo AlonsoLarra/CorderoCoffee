@@ -6,6 +6,43 @@ import { sendOrderReadyEmail } from "@/lib/services/notifications";
 import { logger } from "@/lib/logger";
 import type { OrderStatus } from "@/lib/types/domain";
 
+// Descuenta del inventario los insumos consumidos por los ítems del pedido
+async function deductInventory(orderId: string): Promise<void> {
+  const supabaseAdmin = createSupabaseAdminClient();
+
+  // Obtener los ítems del pedido con sus cantidades
+  const { data: orderItemsData } = await supabaseAdmin
+    .from("order_items")
+    .select("item_id,quantity")
+    .eq("order_id", orderId);
+
+  const orderItems = (orderItemsData ?? []) as unknown as { item_id: string; quantity: number }[];
+  if (orderItems.length === 0) return;
+
+  // Para cada ítem del pedido, obtener su receta y descontar del inventario
+  for (const orderItem of orderItems) {
+    const { data: ingredientsData } = await supabaseAdmin
+      .from("menu_item_ingredients")
+      .select("inventory_item_id,quantity")
+      .eq("menu_item_id", orderItem.item_id);
+
+    const ingredients = (ingredientsData ?? []) as unknown as {
+      inventory_item_id: string;
+      quantity: number;
+    }[];
+
+    for (const ingredient of ingredients) {
+      const deduction = Number(orderItem.quantity) * Number(ingredient.quantity);
+
+      // Descontar el stock usando RPC para evitar race conditions
+      await supabaseAdmin.rpc("decrement_inventory_stock", {
+        p_item_id: ingredient.inventory_item_id,
+        p_amount: deduction,
+      });
+    }
+  }
+}
+
 type TransitionPayload = {
   nextStatus: OrderStatus;
 };
@@ -138,6 +175,11 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
     notifyCustomerOrderReady(order.id).catch((err: unknown) =>
       logger.error("Error enviando notificacion de pedido listo", { route: "/api/admin/orders/[orderId]/status", orderId: order.id, error: err })
     );
+  }
+
+  // Descontar inventario al entregar el pedido (non-blocking)
+  if (payload.nextStatus === "entregado") {
+    deductInventory(order.id).catch(console.error);
   }
 
   // Otorgar puntos de lealtad al entregar el pedido (non-blocking)
