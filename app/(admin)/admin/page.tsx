@@ -59,11 +59,12 @@ export default async function AdminPage() {
       .in("status", ["pendiente", "aceptado", "preparando", "listo"])
       .order("created_at", { ascending: true })
       .limit(100),
-    // Recent completed / canceled orders (most recent 50)
+    // Delivered / canceled orders from today only (current shift)
     supabaseAdmin
       .from("orders")
       .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
       .in("status", ["entregado", "cancelado"])
+      .gte("updated_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
       .order("updated_at", { ascending: false })
       .limit(50),
     supabase.from("menu_categories").select("id,name,sort_order,is_active").order("sort_order", { ascending: true }),
