@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -23,16 +23,36 @@ async function ensureStaff() {
   return { supabase, userId: user.id };
 }
 
-// GET /api/admin/shifts — list all shifts (last 30)
-export async function GET() {
+// GET /api/admin/shifts — list shifts. Optional ?year=YYYY&month=M for calendar filtering.
+export async function GET(request: NextRequest) {
   const auth = await ensureStaff();
   if ("error" in auth) return auth.error;
 
-  const { data, error } = await auth.supabase
+  const yearParam = request.nextUrl.searchParams.get("year");
+  const monthParam = request.nextUrl.searchParams.get("month");
+
+  let query = auth.supabase
     .from("shifts")
     .select("*")
-    .order("opened_at", { ascending: false })
-    .limit(30);
+    .order("opened_at", { ascending: false });
+
+  if (yearParam && monthParam) {
+    const year = parseInt(yearParam, 10);
+    const month = parseInt(monthParam, 10); // 1-12
+    if (!isNaN(year) && !isNaN(month) && month >= 1 && month <= 12) {
+      const start = `${year}-${String(month).padStart(2, "0")}-01T00:00:00`;
+      const nextMonth = month === 12 ? 1 : month + 1;
+      const nextYear = month === 12 ? year + 1 : year;
+      const end = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00`;
+      query = query.gte("opened_at", start).lt("opened_at", end);
+    } else {
+      query = query.limit(30);
+    }
+  } else {
+    query = query.limit(30);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: "No pudimos obtener los turnos." }, { status: 500 });

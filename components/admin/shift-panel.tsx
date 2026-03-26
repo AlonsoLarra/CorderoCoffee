@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { useToast } from "@/components/ui/toast-provider";
+
+const MONTH_NAMES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+const DAY_ABBRS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 type Shift = {
   id: string;
@@ -45,6 +51,11 @@ export function ShiftPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [closeSummary, setCloseSummary] = useState<ShiftSummary | null>(null);
   const [elapsedTime, setElapsedTime] = useState("");
+  const [calMonth, setCalMonth] = useState(() => new Date().getMonth());
+  const [calYear, setCalYear] = useState(() => new Date().getFullYear());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [monthShifts, setMonthShifts] = useState<Shift[]>([]);
+  const [calLoading, setCalLoading] = useState(false);
 
   async function loadData() {
     setLoading(true);
@@ -76,6 +87,45 @@ export function ShiftPanel() {
     setElapsedTime(elapsed(activeShift.opened_at));
     return () => clearInterval(interval);
   }, [activeShift]);
+
+  const loadMonthShifts = useCallback(async (year: number, month: number) => {
+    setCalLoading(true);
+    try {
+      const res = await fetch(`/api/admin/shifts?year=${year}&month=${month + 1}`);
+      if (res.ok) {
+        const body = (await res.json()) as { shifts: Shift[] };
+        setMonthShifts(body.shifts);
+      }
+    } finally {
+      setCalLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === "history") {
+      void loadMonthShifts(calYear, calMonth);
+    }
+  }, [view, calYear, calMonth, loadMonthShifts]);
+
+  function prevMonth() {
+    setSelectedDay(null);
+    if (calMonth === 0) {
+      setCalMonth(11);
+      setCalYear((y: number) => y - 1);
+    } else {
+      setCalMonth((m: number) => m - 1);
+    }
+  }
+
+  function nextMonth() {
+    setSelectedDay(null);
+    if (calMonth === 11) {
+      setCalMonth(0);
+      setCalYear((y: number) => y + 1);
+    } else {
+      setCalMonth((m: number) => m + 1);
+    }
+  }
 
   async function openShift() {
     const cash = Number(openingCash);
@@ -237,8 +287,24 @@ export function ShiftPanel() {
   }
 
   if (view === "history") {
+    const firstDay = new Date(calYear, calMonth, 1);
+    const startIdx = (firstDay.getDay() + 6) % 7; // Monday-first
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === calYear && today.getMonth() === calMonth;
+
+    const shiftDays = new Set<number>();
+    for (const s of monthShifts) {
+      shiftDays.add(new Date(s.opened_at).getDate());
+    }
+
+    const dayShifts = selectedDay
+      ? monthShifts.filter((s) => new Date(s.opened_at).getDate() === selectedDay)
+      : [];
+
     return (
       <div className="mt-4 space-y-4">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="font-heading text-lg text-cordero-espresso">Historial de turnos</h3>
           <button
@@ -249,35 +315,114 @@ export function ShiftPanel() {
             Volver
           </button>
         </div>
-        {shifts.length === 0 ? (
-          <p className="text-sm text-cordero-espresso opacity-60">Sin turnos registrados.</p>
+
+        {/* Month navigation */}
+        <div className="flex items-center justify-center gap-4">
+          <button
+            type="button"
+            onClick={prevMonth}
+            className="rounded-full border border-cordero px-2.5 py-1 text-sm text-cordero-espresso hover:bg-cordero-card"
+          >
+            &lt;
+          </button>
+          <span className="min-w-[10rem] text-center font-heading text-cordero-espresso">
+            {MONTH_NAMES[calMonth]} {calYear}
+          </span>
+          <button
+            type="button"
+            onClick={nextMonth}
+            className="rounded-full border border-cordero px-2.5 py-1 text-sm text-cordero-espresso hover:bg-cordero-card"
+          >
+            &gt;
+          </button>
+        </div>
+
+        {/* Calendar grid */}
+        {calLoading ? (
+          <p className="text-center text-sm text-cordero-espresso opacity-60">Cargando...</p>
         ) : (
-          <div className="space-y-2">
-            {shifts.map((s) => (
-              <div key={s.id} className="rounded-xl border border-cordero p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-cordero-espresso">
-                      {new Date(s.opened_at).toLocaleString("es-MX")}
-                    </p>
-                    <p className="mt-0.5 text-xs text-cordero-espresso opacity-60">
-                      Apertura: {mxn(s.opening_cash)}
-                      {s.closing_cash !== null ? ` · Cierre: ${mxn(s.closing_cash)}` : ""}
-                    </p>
-                    {s.notes && <p className="mt-1 text-xs text-cordero-espresso opacity-60">{s.notes}</p>}
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${
-                      s.status === "open"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-cordero-espresso/10 text-cordero-espresso"
-                    }`}
-                  >
-                    {s.status === "open" ? "Abierto" : "Cerrado"}
-                  </span>
-                </div>
+          <div className="grid grid-cols-7 gap-1">
+            {/* Day-of-week headers */}
+            {DAY_ABBRS.map((d) => (
+              <div key={d} className="py-1 text-center text-xs font-medium text-cordero-espresso opacity-50">
+                {d}
               </div>
             ))}
+
+            {/* Empty cells before first day */}
+            {Array.from({ length: startIdx }, (_, i) => (
+              <div key={`empty-${i}`} />
+            ))}
+
+            {/* Day cells */}
+            {Array.from({ length: daysInMonth }, (_, i) => {
+              const day = i + 1;
+              const hasShifts = shiftDays.has(day);
+              const isSelected = selectedDay === day;
+              const isToday = isCurrentMonth && today.getDate() === day;
+
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  onClick={() => setSelectedDay(isSelected ? null : day)}
+                  className={`flex aspect-square flex-col items-center justify-center rounded-xl text-sm transition-colors ${
+                    isSelected
+                      ? "bg-cordero-espresso text-cordero-cream"
+                      : hasShifts
+                        ? "bg-cordero-card border border-cordero text-cordero-espresso hover:opacity-80"
+                        : "text-cordero-espresso hover:bg-cordero-card"
+                  } ${isToday && !isSelected ? "font-bold" : ""}`}
+                >
+                  {day}
+                  {hasShifts && (
+                    <span
+                      className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                        isSelected ? "bg-cordero-cream" : "bg-cordero-espresso"
+                      }`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Selected day detail */}
+        {selectedDay !== null && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium text-cordero-espresso">
+              {selectedDay} de {MONTH_NAMES[calMonth]} {calYear}
+            </h4>
+            {dayShifts.length === 0 ? (
+              <p className="text-sm text-cordero-espresso opacity-60">Sin turnos este día.</p>
+            ) : (
+              dayShifts.map((s) => (
+                <div key={s.id} className="rounded-xl border border-cordero p-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-cordero-espresso">
+                        {new Date(s.opened_at).toLocaleString("es-MX")}
+                      </p>
+                      <p className="mt-0.5 text-xs text-cordero-espresso opacity-60">
+                        Apertura: {mxn(s.opening_cash)}
+                        {s.closing_cash !== null ? ` · Cierre: ${mxn(s.closing_cash)}` : ""}
+                      </p>
+                      {s.notes && <p className="mt-1 text-xs text-cordero-espresso opacity-60">{s.notes}</p>}
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        s.status === "open"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-cordero-card text-cordero-espresso"
+                      }`}
+                    >
+                      {s.status === "open" ? "Abierto" : "Cerrado"}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
