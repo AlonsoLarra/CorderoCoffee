@@ -72,9 +72,14 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
       return;
     }
 
-    const body = (await response.json()) as { orderId: string };
-    setMessage(`Pedido walk-in creado: ${body.orderId}`);
-    showToast("Pedido walk-in creado y enviado a cola.", "success");
+    const body = (await response.json()) as { orderId: string | null; offline?: boolean };
+    if (body.offline) {
+      setMessage("Sin conexión: pedido guardado localmente, se sincronizará al reconectar.");
+      showToast("Pedido guardado sin conexión.", "success");
+    } else {
+      setMessage(`Pedido walk-in creado: ${body.orderId}`);
+      showToast("Pedido walk-in creado y enviado a cola.", "success");
+    }
     setQuantities({});
     setNotes("");
 

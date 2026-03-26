@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Lora, Work_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 
+import { OfflineSyncBanner } from "@/components/offline-sync-banner";
 import { ToastProvider } from "@/components/ui/toast-provider";
 import { GlobalOrderNotifier } from "@/components/ordering/global-order-notifier";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
         <ToastProvider>
           {children}
           <GlobalOrderNotifier />
+          <OfflineSyncBanner />
         </ToastProvider>
         <Analytics />
       </body>

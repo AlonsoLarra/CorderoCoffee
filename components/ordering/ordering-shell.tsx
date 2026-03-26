@@ -76,7 +76,15 @@ export function OrderingShell({ categories }: OrderingShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [modifierPicker, setModifierPicker] = useState<ModifierPickerState | null>(null);
 
+  function isOutOfStock(item: MenuItemLite): boolean {
+    return item.trackStock && item.stockQuantity !== null && item.stockQuantity <= 0;
+  }
+
   function handleAddItem(item: MenuItemLite) {
+    if (isOutOfStock(item)) {
+      showToast(`${item.name} está agotado.`, "error");
+      return;
+    }
     if (item.modifiers.length > 0) {
       setModifierPicker({ item, selections: {} });
       return;
@@ -126,11 +134,17 @@ export function OrderingShell({ categories }: OrderingShellProps) {
             <ul className="mt-4 space-y-3">
               {category.items.map((item) => {
                 const isPickerOpen = modifierPicker?.item.id === item.id;
+                const outOfStock = isOutOfStock(item);
                 return (
-                  <li key={item.id} className="rounded-xl border border-cordero px-4 py-3">
+                  <li key={item.id} className={`rounded-xl border border-cordero px-4 py-3 ${outOfStock ? "opacity-60" : ""}`}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-sm font-medium text-cordero-espresso">{item.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-cordero-espresso">{item.name}</p>
+                          {outOfStock && (
+                            <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-600">Agotado</span>
+                          )}
+                        </div>
                         {item.description ? (
                           <p className="mt-1 text-xs text-cordero-espresso opacity-75">
                             {item.description}
@@ -144,7 +158,8 @@ export function OrderingShell({ categories }: OrderingShellProps) {
                         <button
                           type="button"
                           onClick={() => handleAddItem(item)}
-                          className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
+                          disabled={outOfStock}
+                          className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Agregar
                         </button>

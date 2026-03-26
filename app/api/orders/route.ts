@@ -116,6 +116,18 @@ export async function POST(request: Request) {
     };
   };
 
+  // Validate loyalty points redemption
+  let pointsRedeemed = 0;
+  if (user && payload.pointsRedeemed && payload.pointsRedeemed > 0) {
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("reward_points")
+      .eq("id", user.id)
+      .maybeSingle();
+    const profile = profileData as unknown as { reward_points: number } | null;
+    pointsRedeemed = Math.min(payload.pointsRedeemed, profile?.reward_points ?? 0);
+  }
+
   const { data: createdOrder, error: orderError } = (await ordersTable
     .insert({
       user_id: user?.id ?? null,
@@ -125,6 +137,9 @@ export async function POST(request: Request) {
       payment_method: payload.paymentMethod,
       pickup_time: pickupTime,
       notes: payload.notes?.trim() ? payload.notes.trim().slice(0, 500) : null,
+      discount_code_id: payload.discountCodeId ?? null,
+      discount_amount: payload.discountAmount ?? 0,
+      points_redeemed: pointsRedeemed,
     })
     .select("id,status")
     .maybeSingle()) as {
@@ -157,6 +172,53 @@ export async function POST(request: Request) {
   if (itemsError) {
     await ordersTable.delete().eq("id", typedOrder.id);
     return NextResponse.json({ error: "No pudimos guardar los productos de tu pedido." }, { status: 500 });
+  }
+
+  // Deduct loyalty points if redeemed
+  if (user && pointsRedeemed > 0) {
+    void (async () => {
+      try {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("reward_points")
+          .eq("id", user.id)
+          .maybeSingle();
+        const profile = profileData as unknown as { reward_points: number } | null;
+        const current = profile?.reward_points ?? 0;
+        const profilesTable = supabase.from("profiles") as unknown as {
+          update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> };
+        };
+        await profilesTable
+          .update({ reward_points: Math.max(0, current - pointsRedeemed), updated_at: new Date().toISOString() })
+          .eq("id", user.id);
+      } catch {
+        // non-blocking
+      }
+    })();
+  }
+
+  // Increment discount code usage
+  if (payload.discountCodeId) {
+    void (async () => {
+      try {
+        const { data: codeData } = await supabase
+          .from("discount_codes")
+          .select("used_count")
+          .eq("id", payload.discountCodeId!)
+          .maybeSingle();
+        const code = codeData as unknown as { used_count: number } | null;
+        if (code) {
+          const discountTable = supabase.from("discount_codes") as unknown as {
+            update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+          };
+          await discountTable
+            .update({ used_count: (code.used_count ?? 0) + 1 })
+            .eq("id", payload.discountCodeId!);
+        }
+      } catch {
+        // non-blocking
+      }
+    })();
   }
 
   return NextResponse.json({

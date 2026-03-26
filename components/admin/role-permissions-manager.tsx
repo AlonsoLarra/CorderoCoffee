@@ -27,6 +27,9 @@ const TAB_LABELS: Record<AdminTabKey, string> = {
   reportes: "Reportes",
   permisos: "Permisos",
   usuarios: "Usuarios",
+  inventario: "Inventario",
+  caja: "Caja",
+  descuentos: "Descuentos",
 };
 
 const TAB_DESCRIPTIONS: Record<AdminTabKey, string> = {
@@ -36,6 +39,9 @@ const TAB_DESCRIPTIONS: Record<AdminTabKey, string> = {
   reportes: "Ver métricas de ventas",
   permisos: "Configurar accesos por rol",
   usuarios: "Gestión de usuarios (solo super admin)",
+  inventario: "Controlar stock de productos",
+  caja: "Abrir y cerrar turnos de caja",
+  descuentos: "Gestionar códigos de descuento",
 };
 
 export function RolePermissionsManager({ isSuperAdmin }: { isSuperAdmin: boolean }) {

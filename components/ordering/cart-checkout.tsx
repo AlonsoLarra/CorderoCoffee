@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useToast } from "@/components/ui/toast-provider";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -43,6 +43,62 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Discount & points
+  const [discountCode, setDiscountCode] = useState("");
+  const [validatingCode, setValidatingCode] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    codeId: string;
+    code: string;
+    discountAmount: number;
+  } | null>(null);
+  const [userPoints, setUserPoints] = useState<number | null>(null);
+  const [redeemPoints, setRedeemPoints] = useState(false);
+
+  useEffect(() => {
+    // Load user points
+    void (async () => {
+      const { createSupabaseBrowserClient } = await import("@/lib/supabase/client");
+      const supabase = createSupabaseBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("reward_points").eq("id", user.id).maybeSingle();
+      const profile = data as unknown as { reward_points: number } | null;
+      if (profile) setUserPoints(profile.reward_points ?? 0);
+    })();
+  }, []);
+
+  async function applyDiscountCode() {
+    if (!discountCode.trim()) return;
+    setValidatingCode(true);
+    try {
+      const res = await fetch("/api/discounts/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: discountCode.trim(), subtotal: total }),
+      });
+      const body = (await res.json()) as {
+        codeId?: string;
+        code?: string;
+        discountAmount?: number;
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.error ?? "Código inválido.");
+      setAppliedDiscount({
+        codeId: body.codeId!,
+        code: body.code!,
+        discountAmount: body.discountAmount!,
+      });
+      showToast(`Descuento aplicado: ${formatPrice(body.discountAmount!)}`, "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Código inválido.", "error");
+    } finally {
+      setValidatingCode(false);
+    }
+  }
+
+  const pointsDiscount = redeemPoints && userPoints ? Math.min(userPoints, total) : 0;
+  const finalTotal = Math.max(0, total - (appliedDiscount?.discountAmount ?? 0) - pointsDiscount);
+
   async function submitOrder() {
     if (lines.length === 0 || isSubmitting) return;
 
@@ -68,6 +124,9 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
       paymentMethod,
       notes,
       scheduledPickupAt: pickupType === "agendar" ? scheduledPickupAt : undefined,
+      discountCodeId: appliedDiscount?.codeId,
+      discountAmount: (appliedDiscount?.discountAmount ?? 0) + pointsDiscount,
+      pointsRedeemed: redeemPoints ? (userPoints ?? 0) : 0,
     };
 
     try {
@@ -235,9 +294,65 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
             />
           </div>
 
+          {/* Discount code */}
+          <div>
+            <label className="block text-xs font-medium text-cordero-espresso">Código de descuento</label>
+            {appliedDiscount ? (
+              <div className="mt-1 flex items-center justify-between rounded-xl border border-green-300 bg-green-50 px-3 py-2 text-sm">
+                <span className="text-green-700">
+                  {appliedDiscount.code} — {formatPrice(appliedDiscount.discountAmount)} de descuento
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAppliedDiscount(null)}
+                  className="ml-2 text-xs text-green-700 underline"
+                >
+                  Quitar
+                </button>
+              </div>
+            ) : (
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="CODIGO"
+                  value={discountCode}
+                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                  className="flex-1 rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={applyDiscountCode}
+                  disabled={validatingCode || !discountCode.trim()}
+                  className="rounded-full border border-cordero px-3 py-2 text-xs text-cordero-espresso disabled:opacity-50"
+                >
+                  {validatingCode ? "..." : "Aplicar"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Points redemption */}
+          {userPoints !== null && userPoints > 0 && (
+            <div className="flex items-center justify-between rounded-xl border border-cordero px-3 py-2">
+              <label className="flex items-center gap-2 text-sm text-cordero-espresso cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={redeemPoints}
+                  onChange={(e) => setRedeemPoints(e.target.checked)}
+                />
+                Canjear {userPoints} punto{userPoints !== 1 ? "s" : ""} ({formatPrice(Math.min(userPoints, total))} de descuento)
+              </label>
+            </div>
+          )}
+
           <div className="flex items-center justify-between text-sm font-medium text-cordero-espresso">
             <span>Total estimado</span>
-            <span>{formatPrice(total)}</span>
+            <div className="text-right">
+              {(appliedDiscount || redeemPoints) && (
+                <span className="mr-2 text-xs line-through opacity-50">{formatPrice(total)}</span>
+              )}
+              <span>{formatPrice(finalTotal)}</span>
+            </div>
           </div>
 
           {checkoutError ? (

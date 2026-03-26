@@ -1,6 +1,6 @@
 export type Role = "guest" | "customer" | "employee" | "admin" | "super_admin";
 
-export type AdminTabKey = "pedidos" | "alta" | "menu" | "usuarios" | "reportes" | "permisos";
+export type AdminTabKey = "pedidos" | "alta" | "menu" | "usuarios" | "reportes" | "permisos" | "inventario" | "caja" | "descuentos";
 
 export type TabPermission = {
   tab_key: AdminTabKey;
