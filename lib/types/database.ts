@@ -290,9 +290,62 @@ export type Database = {
           is_active?: boolean;
         };
       };
+      inventory_items: {
+        Row: {
+          id: string;
+          name: string;
+          unit: string;
+          current_stock: number;
+          minimum_stock: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          unit?: string;
+          current_stock?: number;
+          minimum_stock?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          name?: string;
+          unit?: string;
+          current_stock?: number;
+          minimum_stock?: number | null;
+          updated_at?: string;
+        };
+      };
+      menu_item_ingredients: {
+        Row: {
+          id: string;
+          menu_item_id: string;
+          inventory_item_id: string;
+          quantity: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          menu_item_id: string;
+          inventory_item_id: string;
+          quantity: number;
+          created_at?: string;
+        };
+        Update: {
+          menu_item_id?: string;
+          inventory_item_id?: string;
+          quantity?: number;
+        };
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      decrement_inventory_stock: {
+        Args: { p_item_id: string; p_amount: number };
+        Returns: void;
+      };
+    };
     Enums: {
       role: Role;
       order_status: OrderStatus;
