@@ -72,6 +72,9 @@ export type Database = {
           image_url: string | null;
           is_active: boolean;
           sort_order: number;
+          track_stock: boolean;
+          stock_quantity: number | null;
+          low_stock_alert: number;
           created_at: string;
           updated_at: string;
         };
@@ -84,6 +87,9 @@ export type Database = {
           image_url?: string | null;
           is_active?: boolean;
           sort_order?: number;
+          track_stock?: boolean;
+          stock_quantity?: number | null;
+          low_stock_alert?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -95,6 +101,9 @@ export type Database = {
           image_url?: string | null;
           is_active?: boolean;
           sort_order?: number;
+          track_stock?: boolean;
+          stock_quantity?: number | null;
+          low_stock_alert?: number;
           updated_at?: string;
         };
       };
@@ -135,6 +144,10 @@ export type Database = {
           payment_method: PaymentMethod;
           pickup_time: string | null;
           notes: string | null;
+          shift_id: string | null;
+          discount_amount: number;
+          discount_code_id: string | null;
+          points_redeemed: number;
           created_at: string;
           updated_at: string;
         };
@@ -147,6 +160,10 @@ export type Database = {
           payment_method?: PaymentMethod;
           pickup_time?: string | null;
           notes?: string | null;
+          shift_id?: string | null;
+          discount_amount?: number;
+          discount_code_id?: string | null;
+          points_redeemed?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -158,6 +175,10 @@ export type Database = {
           payment_method?: PaymentMethod;
           pickup_time?: string | null;
           notes?: string | null;
+          shift_id?: string | null;
+          discount_amount?: number;
+          discount_code_id?: string | null;
+          points_redeemed?: number;
           updated_at?: string;
         };
       };
@@ -203,6 +224,70 @@ export type Database = {
         Update: {
           status?: OrderStatus;
           changed_at?: string;
+        };
+      };
+      shifts: {
+        Row: {
+          id: string;
+          opened_by: string | null;
+          closed_by: string | null;
+          opening_cash: number;
+          closing_cash: number | null;
+          status: "open" | "closed";
+          notes: string | null;
+          opened_at: string;
+          closed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          opened_by?: string | null;
+          closed_by?: string | null;
+          opening_cash?: number;
+          closing_cash?: number | null;
+          status?: "open" | "closed";
+          notes?: string | null;
+          opened_at?: string;
+          closed_at?: string | null;
+        };
+        Update: {
+          closed_by?: string | null;
+          closing_cash?: number | null;
+          status?: "open" | "closed";
+          notes?: string | null;
+          closed_at?: string | null;
+        };
+      };
+      discount_codes: {
+        Row: {
+          id: string;
+          code: string;
+          type: "percent" | "fixed";
+          value: number;
+          max_uses: number | null;
+          used_count: number;
+          expires_at: string | null;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          type: "percent" | "fixed";
+          value: number;
+          max_uses?: number | null;
+          used_count?: number;
+          expires_at?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          type?: "percent" | "fixed";
+          value?: number;
+          max_uses?: number | null;
+          used_count?: number;
+          expires_at?: string | null;
+          is_active?: boolean;
         };
       };
     };

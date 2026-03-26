@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 
+import { AdvancedReportsPanel } from "@/components/admin/advanced-reports-panel";
+import { DiscountsPanel } from "@/components/admin/discounts-panel";
+import { InventoryPanel } from "@/components/admin/inventory-panel";
 import { MenuManager } from "@/components/admin/menu-manager";
 import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
-import { ReportsPanel } from "@/components/admin/reports-panel";
 import { RolePermissionsManager } from "@/components/admin/role-permissions-manager";
+import { ShiftPanel } from "@/components/admin/shift-panel";
 import { UserManager } from "@/components/admin/user-manager";
 import { WalkinOrderForm } from "@/components/admin/walkin-order-form";
 import type { AdminTabKey } from "@/lib/types/domain";
@@ -25,6 +28,9 @@ type MenuItem = {
   price: number;
   is_active: boolean;
   sort_order: number;
+  track_stock: boolean;
+  stock_quantity: number | null;
+  low_stock_alert: number;
 };
 
 type TopProduct = {
@@ -39,7 +45,7 @@ type AdminTabsProps = {
   currentRole: string;
   /** Set of tab keys this user is allowed to see (comes from DB or hardcoded for super_admin) */
   allowedTabs: Set<AdminTabKey>;
-  reports: {
+  reports?: {
     todayOrderCount: number;
     todayRevenue: number;
     todayDelivered: number;
@@ -59,8 +65,11 @@ const ALL_TABS: TabDef[] = [
   { key: "pedidos", label: "Pedidos" },
   { key: "alta", label: "Alta manual" },
   { key: "menu", label: "Menú" },
+  { key: "inventario", label: "Inventario" },
+  { key: "caja", label: "Caja" },
   { key: "usuarios", label: "Usuarios" },
   { key: "reportes", label: "Reportes" },
+  { key: "descuentos", label: "Descuentos" },
   { key: "permisos", label: "Permisos" },
 ];
 
@@ -70,7 +79,6 @@ export function AdminTabs({
   items,
   currentRole,
   allowedTabs,
-  reports,
 }: AdminTabsProps) {
   const isSuperAdmin = currentRole === "super_admin";
 
@@ -143,20 +151,48 @@ export function AdminTabs({
           </div>
         )}
 
+        {resolvedActive === "inventario" && (
+          <div>
+            <p className="text-sm text-cordero-espresso opacity-70">
+              Controla el stock de cada producto. Los ítems agotados no se mostrarán a los clientes.
+            </p>
+            <InventoryPanel
+              items={items.map((i) => ({
+                id: i.id,
+                name: i.name,
+                track_stock: i.track_stock,
+                stock_quantity: i.stock_quantity,
+                low_stock_alert: i.low_stock_alert,
+                is_active: i.is_active,
+              }))}
+            />
+          </div>
+        )}
+
+        {resolvedActive === "caja" && (
+          <div>
+            <p className="text-sm text-cordero-espresso opacity-70">
+              Abre y cierra turnos de caja. Registra el efectivo al inicio y al final de cada turno.
+            </p>
+            <ShiftPanel />
+          </div>
+        )}
+
         {resolvedActive === "reportes" && (
           <div>
             <p className="text-sm text-cordero-espresso opacity-70">
-              Métricas de ventas de hoy y los últimos 7 días.
+              Consulta ventas por período, distribución horaria, métodos de pago y exporta CSV.
             </p>
-            <ReportsPanel
-              todayOrderCount={reports.todayOrderCount}
-              todayRevenue={reports.todayRevenue}
-              todayDelivered={reports.todayDelivered}
-              todayPending={reports.todayPending}
-              weekOrderCount={reports.weekOrderCount}
-              weekRevenue={reports.weekRevenue}
-              topProducts={reports.topProducts}
-            />
+            <AdvancedReportsPanel />
+          </div>
+        )}
+
+        {resolvedActive === "descuentos" && (
+          <div>
+            <p className="text-sm text-cordero-espresso opacity-70">
+              Crea y gestiona códigos de descuento para clientes.
+            </p>
+            <DiscountsPanel />
           </div>
         )}
 

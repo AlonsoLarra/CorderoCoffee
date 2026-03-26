@@ -13,6 +13,8 @@ export type MenuItemLite = {
   description: string | null;
   price: number;
   modifiers: ItemModifier[];
+  trackStock: boolean;
+  stockQuantity: number | null;
 };
 
 export type MenuCategoryWithItems = {
@@ -42,6 +44,8 @@ type RawItem = {
   description: string | null;
   price: number;
   sort_order: number;
+  track_stock: boolean;
+  stock_quantity: number | null;
   item_modifiers: RawModifier[];
 };
 
@@ -57,7 +61,7 @@ export async function getActiveMenu(): Promise<MenuCategoryWithItems[]> {
         .order("sort_order", { ascending: true }),
       supabase
         .from("menu_items")
-        .select("id,category_id,name,description,price,sort_order,item_modifiers(id,name,options,is_required)")
+        .select("id,category_id,name,description,price,sort_order,track_stock,stock_quantity,item_modifiers(id,name,options,is_required)")
         .eq("is_active", true)
         .order("sort_order", { ascending: true }),
     ]);
@@ -81,6 +85,8 @@ export async function getActiveMenu(): Promise<MenuCategoryWithItems[]> {
         name: item.name,
         description: item.description,
         price: Number(item.price),
+        trackStock: item.track_stock ?? false,
+        stockQuantity: item.stock_quantity ?? null,
         modifiers: (item.item_modifiers ?? []).map((mod) => ({
           id: mod.id,
           name: mod.name,

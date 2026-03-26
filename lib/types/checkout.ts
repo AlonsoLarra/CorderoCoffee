@@ -17,6 +17,9 @@ export type CreateOrderRequest = {
   paymentMethod: PaymentMethod;
   notes?: string;
   scheduledPickupAt?: string;
+  discountCodeId?: string;
+  discountAmount?: number;
+  pointsRedeemed?: number;
 };
 
 export type CreateOrderResponse = {
