@@ -124,6 +124,7 @@ export function ShiftPanel() {
       setCloseSummary(body.summary ?? null);
       setClosingCash("");
       setShiftNotes("");
+      setView("main");
       void loadData();
       showToast("Turno cerrado.", "success");
     } catch (err) {
