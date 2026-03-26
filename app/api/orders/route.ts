@@ -208,9 +208,11 @@ export async function POST(request: Request) {
           .maybeSingle();
         const code = codeData as unknown as { used_count: number } | null;
         if (code) {
-          await supabase
-            .from("discount_codes")
-            .update({ used_count: (code.used_count ?? 0) + 1 } as Record<string, unknown>)
+          const discountTable = supabase.from("discount_codes") as unknown as {
+            update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+          };
+          await discountTable
+            .update({ used_count: (code.used_count ?? 0) + 1 })
             .eq("id", payload.discountCodeId!);
         }
       } catch {

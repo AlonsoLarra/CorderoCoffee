@@ -69,16 +69,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Monto de apertura invalido." }, { status: 400 });
   }
 
-  const { data: shift, error } = await auth.supabase
-    .from("shifts")
+  const shiftsTable = auth.supabase.from("shifts") as unknown as {
+    insert: (v: Record<string, unknown>) => {
+      select: (cols: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> };
+    };
+  };
+  const { data: shift, error } = (await shiftsTable
     .insert({
       opened_by: auth.userId,
       opening_cash: openingCash,
       notes: payload.notes?.trim() || null,
       status: "open",
-    } as Record<string, unknown>)
+    })
     .select("*")
-    .maybeSingle();
+    .maybeSingle()) as { data: unknown; error: unknown };
 
   if (error || !shift) {
     return NextResponse.json({ error: "No pudimos abrir el turno." }, { status: 500 });

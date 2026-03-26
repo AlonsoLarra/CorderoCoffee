@@ -52,18 +52,24 @@ export async function PATCH(request: Request) {
 
   const typedShift = openShift as unknown as { id: string };
 
-  const { data: shift, error } = await auth.supabase
-    .from("shifts")
+  const shiftsTable = auth.supabase.from("shifts") as unknown as {
+    update: (v: Record<string, unknown>) => {
+      eq: (col: string, val: string) => {
+        select: (cols: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> };
+      };
+    };
+  };
+  const { data: shift, error } = (await shiftsTable
     .update({
       closed_by: auth.userId,
       closing_cash: closingCash,
       status: "closed",
       notes: payload.notes?.trim() || null,
       closed_at: new Date().toISOString(),
-    } as Record<string, unknown>)
+    })
     .eq("id", typedShift.id)
     .select("*")
-    .maybeSingle();
+    .maybeSingle()) as { data: unknown; error: unknown };
 
   if (error || !shift) {
     return NextResponse.json({ error: "No pudimos cerrar el turno." }, { status: 500 });

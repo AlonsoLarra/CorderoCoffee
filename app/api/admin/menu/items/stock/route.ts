@@ -45,14 +45,16 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "itemId requerido." }, { status: 400 });
   }
 
-  const { error } = await auth.supabase
-    .from("menu_items")
+  const menuTable = auth.supabase.from("menu_items") as unknown as {
+    update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+  };
+  const { error } = await menuTable
     .update({
       track_stock: payload.trackStock,
       stock_quantity: payload.trackStock ? (payload.stockQuantity ?? null) : null,
       low_stock_alert: payload.lowStockAlert ?? 5,
       updated_at: new Date().toISOString(),
-    } as Record<string, unknown>)
+    })
     .eq("id", payload.itemId);
 
   if (error) {

@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/types/database";
-
-type DiscountUpdate = Database["public"]["Tables"]["discount_codes"]["Update"];
 
 async function ensureAdmin() {
   const supabase = createSupabaseServerClient();
@@ -38,15 +35,15 @@ export async function PATCH(request: Request, context: { params: { discountId: s
     return NextResponse.json({ error: "Payload invalido." }, { status: 400 });
   }
 
-  const update: DiscountUpdate = {};
+  const update: Record<string, unknown> = {};
   if (typeof payload.isActive === "boolean") update.is_active = payload.isActive;
   if ("maxUses" in payload) update.max_uses = payload.maxUses ?? null;
   if ("expiresAt" in payload) update.expires_at = payload.expiresAt ?? null;
 
-  const { error } = await auth.supabase
-    .from("discount_codes")
-    .update(update)
-    .eq("id", context.params.discountId);
+  const discountTable = auth.supabase.from("discount_codes") as unknown as {
+    update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+  };
+  const { error } = await discountTable.update(update).eq("id", context.params.discountId);
 
   if (error) {
     return NextResponse.json({ error: "No pudimos actualizar el descuento." }, { status: 500 });
@@ -60,11 +57,10 @@ export async function DELETE(_request: Request, context: { params: { discountId:
   const auth = await ensureAdmin();
   if ("error" in auth) return auth.error;
 
-  const deleteUpdate: DiscountUpdate = { is_active: false };
-  const { error } = await auth.supabase
-    .from("discount_codes")
-    .update(deleteUpdate)
-    .eq("id", context.params.discountId);
+  const discountTable = auth.supabase.from("discount_codes") as unknown as {
+    update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+  };
+  const { error } = await discountTable.update({ is_active: false }).eq("id", context.params.discountId);
 
   if (error) {
     return NextResponse.json({ error: "No pudimos eliminar el descuento." }, { status: 500 });

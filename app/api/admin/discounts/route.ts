@@ -78,8 +78,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "El porcentaje no puede ser mayor a 100." }, { status: 400 });
   }
 
-  const { data: discount, error } = await auth.supabase
-    .from("discount_codes")
+  const discountTable = auth.supabase.from("discount_codes") as unknown as {
+    insert: (v: Record<string, unknown>) => {
+      select: (cols: string) => { maybeSingle: () => Promise<{ data: unknown; error: unknown }> };
+    };
+  };
+  const { data: discount, error } = (await discountTable
     .insert({
       code: payload.code.trim().toUpperCase(),
       type: payload.type,
@@ -87,9 +91,9 @@ export async function POST(request: Request) {
       max_uses: payload.maxUses ?? null,
       expires_at: payload.expiresAt ?? null,
       is_active: payload.isActive ?? true,
-    } as Record<string, unknown>)
+    })
     .select("*")
-    .maybeSingle();
+    .maybeSingle()) as { data: unknown; error: unknown };
 
   if (error) {
     if ((error as unknown as { code?: string })?.code === "23505") {
