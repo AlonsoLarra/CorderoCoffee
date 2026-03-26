@@ -224,7 +224,9 @@ export function OrderQueue({ orders }: OrderQueueProps) {
     });
 
     if (!response.ok) {
-      showToast("No pudimos actualizar el estado del pedido.", "error");
+      const body = await response.json().catch(() => null);
+      const msg = (body as { error?: string } | null)?.error ?? "No pudimos actualizar el estado del pedido.";
+      showToast(msg, "error");
       return;
     }
 
