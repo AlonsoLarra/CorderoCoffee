@@ -35,12 +35,13 @@ export async function PATCH(request: Request, context: { params: { discountId: s
     return NextResponse.json({ error: "Payload invalido." }, { status: 400 });
   }
 
-  const update: Record<string, unknown> = {};
+  const update: { is_active?: boolean; max_uses?: number | null; expires_at?: string | null } = {};
   if (typeof payload.isActive === "boolean") update.is_active = payload.isActive;
   if ("maxUses" in payload) update.max_uses = payload.maxUses ?? null;
   if ("expiresAt" in payload) update.expires_at = payload.expiresAt ?? null;
 
-  const { error } = await auth.supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (auth.supabase as any)
     .from("discount_codes")
     .update(update)
     .eq("id", context.params.discountId);
@@ -57,9 +58,10 @@ export async function DELETE(_request: Request, context: { params: { discountId:
   const auth = await ensureAdmin();
   if ("error" in auth) return auth.error;
 
-  const { error } = await auth.supabase
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (auth.supabase as any)
     .from("discount_codes")
-    .update({ is_active: false } as Record<string, unknown>)
+    .update({ is_active: false })
     .eq("id", context.params.discountId);
 
   if (error) {
