@@ -63,12 +63,23 @@ export async function PATCH(request: Request, context: { params: { itemId: strin
         : null;
   }
 
-  const { data, error } = await auth.supabaseAdmin
-    .from("inventory_items")
+  type InventoryTable = {
+    update: (values: Record<string, unknown>) => {
+      eq: (column: string, value: string) => {
+        select: (columns: string) => {
+          maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
+        };
+      };
+    };
+  };
+
+  const inventoryTable = auth.supabaseAdmin.from("inventory_items") as unknown as InventoryTable;
+
+  const { data, error } = (await inventoryTable
     .update(updates)
     .eq("id", context.params.itemId)
     .select("id,name,unit,current_stock,minimum_stock,created_at,updated_at")
-    .maybeSingle();
+    .maybeSingle()) as { data: { id: string; name: string; unit: string; current_stock: number; minimum_stock: number | null; created_at: string; updated_at: string } | null; error: unknown };
 
   if (error || !data) {
     return NextResponse.json({ error: "No pudimos actualizar el insumo." }, { status: 500 });
@@ -81,8 +92,9 @@ export async function DELETE(_request: Request, context: { params: { itemId: str
   const auth = await ensureAdmin();
   if ("error" in auth) return auth.error;
 
-  const { error } = await auth.supabaseAdmin
-    .from("inventory_items")
+  const { error } = await (auth.supabaseAdmin.from("inventory_items") as unknown as {
+    delete: () => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+  })
     .delete()
     .eq("id", context.params.itemId);
 
