@@ -71,8 +71,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Stock inicial invalido." }, { status: 400 });
   }
 
-  const { data, error } = await auth.supabaseAdmin
-    .from("inventory_items")
+  type InventoryTable = {
+    insert: (values: Record<string, unknown>) => {
+      select: (columns: string) => {
+        maybeSingle: () => Promise<{ data: unknown; error: unknown }>;
+      };
+    };
+  };
+  const inventoryTable = auth.supabaseAdmin.from("inventory_items") as unknown as InventoryTable;
+
+  const { data, error } = await inventoryTable
     .insert({
       name: payload.name.trim(),
       unit: payload.unit.trim(),

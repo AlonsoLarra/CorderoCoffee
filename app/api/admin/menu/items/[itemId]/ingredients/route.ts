@@ -97,8 +97,14 @@ export async function PUT(request: Request, context: { params: { itemId: string 
     quantity: line.quantity,
   }));
 
-  const { data, error: insertError } = await auth.supabaseAdmin
-    .from("menu_item_ingredients")
+  type IngredientsTable = {
+    insert: (values: Record<string, unknown>[]) => {
+      select: (columns: string) => Promise<{ data: unknown; error: unknown }>;
+    };
+  };
+  const ingredientsTable = auth.supabaseAdmin.from("menu_item_ingredients") as unknown as IngredientsTable;
+
+  const { data, error: insertError } = await ingredientsTable
     .insert(rows)
     .select("id,menu_item_id,inventory_item_id,quantity,inventory_items(id,name,unit,current_stock,minimum_stock)");
 
