@@ -21,8 +21,10 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
 
   const redirectTo = searchParams?.redirectTo;
 
-  if (user) {
-    redirect(redirectTo ?? "/pedido");
+  // Keep the access page reachable from the public login CTA.
+  // Only force a redirect when an explicit target was requested.
+  if (user && redirectTo) {
+    redirect(redirectTo);
   }
   const errorMessage = searchParams?.error;
   const successMessage = searchParams?.success;
