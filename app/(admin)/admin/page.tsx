@@ -142,8 +142,21 @@ export default async function AdminPage() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-12 sm:px-8">
-      <h1 className="font-heading text-3xl text-cordero-espresso sm:text-4xl">{COPY.admin.title}</h1>
-      <p className="mt-2 max-w-2xl text-sm text-cordero-espresso opacity-70">{COPY.admin.description}</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="font-heading text-3xl text-cordero-espresso sm:text-4xl">{COPY.admin.title}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-cordero-espresso opacity-70">{COPY.admin.description}</p>
+        </div>
+
+        <div className="sm:sticky sm:top-4 sm:self-start">
+          <Link
+            className="inline-block rounded-full border border-cordero bg-cordero-cream/90 px-5 py-2 text-sm shadow-sm backdrop-blur"
+            href="/"
+          >
+            Volver al inicio
+          </Link>
+        </div>
+      </div>
 
       <AdminTabs
         allowedTabs={allowedTabs}
@@ -153,10 +166,6 @@ export default async function AdminPage() {
         items={items.map((item) => ({ ...item, price: Number(item.price) }))}
         orders={queueItems}
       />
-
-      <Link className="mt-8 inline-block rounded-full border border-cordero px-5 py-2 text-sm" href="/">
-        Volver al inicio
-      </Link>
     </main>
   );
 }
