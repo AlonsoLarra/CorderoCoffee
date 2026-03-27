@@ -50,7 +50,7 @@ export function CartDrawer({ isOpen, onClose, cart }: CartDrawerProps) {
         aria-modal="true"
         aria-label="Carrito"
         className={`fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col bg-cordero-cream shadow-2xl transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
+          isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
         }`}
       >
         <div className="flex items-center justify-between border-b border-cordero px-6 py-4">
