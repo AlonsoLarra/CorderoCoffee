@@ -556,8 +556,8 @@ export function ShiftPanel() {
             <div className="rounded-xl border border-cordero bg-cordero-card p-4 space-y-2">
               <p className="font-medium text-cordero-espresso">Resumen del día</p>
               <div className="grid grid-cols-2 gap-2 text-sm text-cordero-espresso">
-                <div>Turnos: <strong>{p.totalShifts as number}</strong></div>
-                <div>Pedidos: <strong>{p.totalOrders as number}</strong></div>
+                <div>Turnos: <strong>{Number(p.totalShifts)}</strong></div>
+                <div>Pedidos: <strong>{Number(p.totalOrders)}</strong></div>
                 <div>Ventas efectivo: <strong>{mxn(p.totalCashSales as number)}</strong></div>
                 <div>Ventas tarjeta: <strong>{mxn(p.totalCardSales as number)}</strong></div>
                 <div>Total ventas: <strong>{mxn(p.totalRevenue as number)}</strong></div>
@@ -565,7 +565,7 @@ export function ShiftPanel() {
               </div>
 
               {/* Top products */}
-              {(p.topProducts as Array<{ name: string; quantity: number }>)?.length > 0 && (
+              {Array.isArray(p.topProducts) && (p.topProducts as Array<{ name: string; quantity: number }>).length > 0 && (
                 <div className="mt-2">
                   <p className="text-xs font-medium text-cordero-espresso opacity-70">Productos más vendidos</p>
                   {(p.topProducts as Array<{ name: string; quantity: number }>).slice(0, 5).map((prod, i) => (
@@ -577,7 +577,7 @@ export function ShiftPanel() {
               )}
 
               {/* Hourly sales */}
-              {p.hourlySales && Object.keys(p.hourlySales as Record<string, number>).length > 0 && (
+              {p.hourlySales != null && typeof p.hourlySales === "object" && Object.keys(p.hourlySales as Record<string, number>).length > 0 && (
                 <div className="mt-2">
                   <p className="text-xs font-medium text-cordero-espresso opacity-70">Ventas por hora</p>
                   <div className="flex flex-wrap gap-1 mt-1">
