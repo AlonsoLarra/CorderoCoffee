@@ -193,7 +193,7 @@ export function ShiftPanel() {
 
       if (body.discrepancy && body.discrepancy !== 0) {
         const sign = body.discrepancy > 0 ? "+" : "";
-        showToast(`Turno abierto. Discrepancia: ${sign}${mxn(body.discrepancy)}`, "warning");
+        showToast(`Turno abierto. Discrepancia: ${sign}${mxn(body.discrepancy)}`, "error");
       } else {
         showToast("Turno abierto.", "success");
       }
