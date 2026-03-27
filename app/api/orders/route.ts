@@ -126,7 +126,7 @@ export async function POST(request: Request) {
 
   const { data: menuItems, error: menuError } = await supabase
     .from("menu_items")
-    .select("id, price, is_active")
+    .select("id, name, price, is_active, track_stock, stock_quantity")
     .in("id", uniqueItemIds)
     .eq("is_active", true);
 
@@ -136,12 +136,35 @@ export async function POST(request: Request) {
 
   const typedMenuItems = (menuItems ?? []) as unknown as Array<{
     id: string;
+    name: string;
     price: number;
     is_active: boolean;
+    track_stock: boolean;
+    stock_quantity: number | null;
   }>;
 
   if (typedMenuItems.length !== uniqueItemIds.length) {
     return badRequest("Uno o mas productos no estan disponibles.");
+  }
+
+  // Validate stock availability
+  const quantityByItem = new Map<string, number>();
+  for (const line of normalizedLines) {
+    quantityByItem.set(line.itemId, (quantityByItem.get(line.itemId) ?? 0) + line.quantity);
+  }
+
+  for (const item of typedMenuItems) {
+    if (item.track_stock && item.stock_quantity !== null) {
+      const requested = quantityByItem.get(item.id) ?? 0;
+      if (item.stock_quantity <= 0) {
+        return badRequest(`${item.name} está agotado.`);
+      }
+      if (requested > item.stock_quantity) {
+        return badRequest(
+          `Solo quedan ${item.stock_quantity} unidad${item.stock_quantity === 1 ? "" : "es"} de ${item.name}.`,
+        );
+      }
+    }
   }
 
   const priceByItem = new Map(typedMenuItems.map((item) => [item.id, Number(item.price)]));
