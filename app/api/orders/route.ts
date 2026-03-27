@@ -19,7 +19,7 @@ function badRequest(message: string) {
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`orders:${ip}`, 10, 60_000);
+  const rl = await checkRateLimit(`orders:${ip}`, 10, 60_000);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Demasiados pedidos. Intenta en un momento." },
