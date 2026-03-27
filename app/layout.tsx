@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 import { OfflineSyncBanner } from "@/components/offline-sync-banner";
 import { ToastProvider } from "@/components/ui/toast-provider";
+import { NotificationProvider } from "@/components/notifications/notification-provider";
 import { GlobalOrderNotifier } from "@/components/ordering/global-order-notifier";
 
 import "./globals.css";
@@ -60,9 +61,11 @@ export default function RootLayout({
     <html lang="es">
       <body className={`${headingFont.variable} ${bodyFont.variable} bg-cordero-cream text-cordero-espresso antialiased`}>
         <ToastProvider>
-          {children}
-          <GlobalOrderNotifier />
-          <OfflineSyncBanner />
+          <NotificationProvider>
+            {children}
+            <GlobalOrderNotifier />
+            <OfflineSyncBanner />
+          </NotificationProvider>
         </ToastProvider>
         <Analytics />
       </body>

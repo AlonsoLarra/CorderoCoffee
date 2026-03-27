@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
+import { NotificationBell } from "@/components/notifications/notification-bell";
+
 interface LoginBannerProps {
   userEmail: string | null;
   profileName: string | null;
@@ -36,6 +38,8 @@ export function LoginBanner({ userEmail, profileName, rewardPoints }: LoginBanne
       <div className="sticky top-0 z-40 w-full border-b border-cordero bg-cordero-card px-6 py-3 text-sm text-cordero-espresso sm:px-10">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2">
           <p className="opacity-70">Bienvenido, {profileName ?? userEmail}</p>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
           {rewardPoints !== null && (
             <div className="relative">
               <button
@@ -80,6 +84,7 @@ export function LoginBanner({ userEmail, profileName, rewardPoints }: LoginBanne
               )}
             </div>
           )}
+          </div>
         </div>
       </div>
     );
