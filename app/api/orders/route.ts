@@ -72,6 +72,52 @@ export async function POST(request: Request) {
 
   const supabase = createSupabaseServerClient();
 
+  // Block orders if no shift is open
+  const { data: activeShift } = await supabase
+    .from("shifts")
+    .select("id, cash_sales_total, opening_cash, total_cash_drops, orders_since_threshold")
+    .eq("status", "open")
+    .maybeSingle();
+
+  if (!activeShift) {
+    return NextResponse.json(
+      { error: "Los pedidos solo pueden realizarse durante el horario de operación. No hay un turno abierto." },
+      { status: 403 },
+    );
+  }
+
+  const typedActiveShift = activeShift as unknown as {
+    id: string;
+    cash_sales_total: number;
+    opening_cash: number;
+    total_cash_drops: number;
+    orders_since_threshold: number;
+  };
+
+  // Check if cash drop is required (for cash payments)
+  if (payload.paymentMethod === "cash") {
+    const { data: settingsData } = await supabase
+      .from("store_settings")
+      .select("key, value")
+      .in("key", ["cash_drop_threshold", "max_orders_after_threshold"]);
+
+    const settings: Record<string, string> = {};
+    for (const row of (settingsData ?? []) as unknown as Array<{ key: string; value: string }>) {
+      settings[row.key] = row.value;
+    }
+
+    const threshold = Number(settings.cash_drop_threshold ?? 5000);
+    const maxOrders = Number(settings.max_orders_after_threshold ?? 5);
+    const currentBalance = Number(typedActiveShift.opening_cash) + Number(typedActiveShift.cash_sales_total) - Number(typedActiveShift.total_cash_drops);
+
+    if (currentBalance >= threshold && typedActiveShift.orders_since_threshold >= maxOrders) {
+      return NextResponse.json(
+        { error: "Se requiere un corte de caja antes de aceptar más pedidos en efectivo." },
+        { status: 403 },
+      );
+    }
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -140,6 +186,7 @@ export async function POST(request: Request) {
       discount_code_id: payload.discountCodeId ?? null,
       discount_amount: payload.discountAmount ?? 0,
       points_redeemed: pointsRedeemed,
+      shift_id: typedActiveShift.id,
     })
     .select("id,status")
     .maybeSingle()) as {
@@ -172,6 +219,51 @@ export async function POST(request: Request) {
   if (itemsError) {
     await ordersTable.delete().eq("id", typedOrder.id);
     return NextResponse.json({ error: "No pudimos guardar los productos de tu pedido." }, { status: 500 });
+  }
+
+  // Update shift cash tracking for cash payments
+  if (payload.paymentMethod === "cash") {
+    const orderTotal = normalizedLines.reduce((sum, line) => {
+      return sum + (priceByItem.get(line.itemId) ?? 0) * line.quantity;
+    }, 0) - (payload.discountAmount ?? 0);
+
+    const currentBalance = Number(typedActiveShift.opening_cash) + Number(typedActiveShift.cash_sales_total) - Number(typedActiveShift.total_cash_drops);
+    const newBalance = currentBalance + orderTotal;
+
+    // Check if we need to track orders past threshold
+    const { data: thresholdSetting } = await supabase
+      .from("store_settings")
+      .select("value")
+      .eq("key", "cash_drop_threshold")
+      .maybeSingle();
+    const threshold = Number((thresholdSetting as unknown as { value: string } | null)?.value ?? 5000);
+    const pastThreshold = newBalance >= threshold;
+
+    const shiftsUpdateTable = supabase.from("shifts") as unknown as {
+      update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
+    };
+
+    await shiftsUpdateTable
+      .update({
+        cash_sales_total: Number(typedActiveShift.cash_sales_total) + orderTotal,
+        orders_since_threshold: pastThreshold
+          ? typedActiveShift.orders_since_threshold + 1
+          : typedActiveShift.orders_since_threshold,
+      })
+      .eq("id", typedActiveShift.id);
+
+    // Record cash movement
+    const movementsTable = supabase.from("cash_movements") as unknown as {
+      insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+    };
+    await movementsTable.insert({
+      shift_id: typedActiveShift.id,
+      type: "sale",
+      amount: orderTotal,
+      balance_after: newBalance,
+      order_id: typedOrder.id,
+      performed_by: user?.id ?? null,
+    });
   }
 
   // Deduct loyalty points if redeemed

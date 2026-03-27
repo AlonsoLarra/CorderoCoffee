@@ -77,17 +77,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Ya hay un turno abierto." }, { status: 409 });
   }
 
-  let payload: { openingCash: number; notes?: string };
+  let payload: { actualOpeningCash: number; notes?: string };
   try {
-    payload = (await request.json()) as { openingCash: number; notes?: string };
+    payload = (await request.json()) as { actualOpeningCash: number; notes?: string };
   } catch {
     return NextResponse.json({ error: "Payload invalido." }, { status: 400 });
   }
 
-  const openingCash = Number(payload.openingCash ?? 0);
-  if (isNaN(openingCash) || openingCash < 0) {
+  const actualOpeningCash = Number(payload.actualOpeningCash ?? 0);
+  if (isNaN(actualOpeningCash) || actualOpeningCash < 0) {
     return NextResponse.json({ error: "Monto de apertura invalido." }, { status: 400 });
   }
+
+  // Get expected opening cash from store settings
+  const { data: settingsData } = await auth.supabase
+    .from("store_settings")
+    .select("key, value")
+    .eq("key", "minimum_cash_in_drawer")
+    .maybeSingle();
+
+  const expectedOpeningCash = Number(
+    (settingsData as unknown as { value: string } | null)?.value ?? 1000
+  );
+
+  const discrepancy = actualOpeningCash - expectedOpeningCash;
 
   const shiftsTable = auth.supabase.from("shifts") as unknown as {
     insert: (v: Record<string, unknown>) => {
@@ -97,7 +110,11 @@ export async function POST(request: Request) {
   const { data: shift, error } = (await shiftsTable
     .insert({
       opened_by: auth.userId,
-      opening_cash: openingCash,
+      opening_cash: actualOpeningCash,
+      expected_opening_cash: expectedOpeningCash,
+      actual_opening_cash: actualOpeningCash,
+      opening_discrepancy: discrepancy,
+      opening_confirmed_at: new Date().toISOString(),
       notes: payload.notes?.trim() || null,
       status: "open",
     })
@@ -108,5 +125,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No pudimos abrir el turno." }, { status: 500 });
   }
 
-  return NextResponse.json({ shift });
+  // Record opening cash movement
+  const movementsTable = auth.supabase.from("cash_movements") as unknown as {
+    insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
+  };
+
+  const typedShift = shift as unknown as { id: string };
+  await movementsTable.insert({
+    shift_id: typedShift.id,
+    type: "opening",
+    amount: actualOpeningCash,
+    balance_after: actualOpeningCash,
+    performed_by: auth.userId,
+    notes: discrepancy !== 0
+      ? `Apertura con discrepancia de ${discrepancy > 0 ? "+" : ""}${discrepancy}`
+      : "Apertura de turno",
+  });
+
+  return NextResponse.json({ shift, expectedOpeningCash, discrepancy });
 }
