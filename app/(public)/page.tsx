@@ -14,6 +14,8 @@ export default async function PublicHomePage() {
 
   const role = user ? await getUserRole(user.id) : null;
   const isAdmin = isAdminRole(role);
+  const navActionClass =
+    "inline-flex items-center text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100";
 
   return (
     <main>
@@ -24,27 +26,21 @@ export default async function PublicHomePage() {
         </span>
         <nav aria-label="Navegación principal" className="flex items-center gap-6 sm:gap-8">
           {isAdmin && (
-            <Link
-              href="/admin"
-              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
-            >
+            <Link href="/admin" className={navActionClass}>
               Consola admin
             </Link>
           )}
           {user ? (
-            <form action={signOutAction}>
+            <form action={signOutAction} className="m-0 flex items-center">
               <button
                 type="submit"
-                className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
+                className={`${navActionClass} border-0 bg-transparent p-0 leading-none`}
               >
                 {COPY.actions.signOut}
               </button>
             </form>
           ) : (
-            <Link
-              href="/acceso"
-              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cordero-espresso opacity-40 transition-opacity duration-300 hover:opacity-100"
-            >
+            <Link href="/acceso" className={navActionClass}>
               Iniciar sesión
             </Link>
           )}
