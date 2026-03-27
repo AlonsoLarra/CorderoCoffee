@@ -6,6 +6,14 @@ import { sendOrderReadyEmail } from "@/lib/services/notifications";
 import { logger } from "@/lib/logger";
 import type { OrderStatus } from "@/lib/types/domain";
 
+const NOTIFICATION_CONTENT: Partial<Record<OrderStatus, { title: string; body: string }>> = {
+  aceptado:   { title: "Pedido aceptado",       body: "Tu pedido fue aceptado y será preparado pronto." },
+  preparando: { title: "En preparación",         body: "Tu pedido está siendo preparado." },
+  listo:      { title: "¡Listo para recoger!",   body: "Tu pedido está listo. Pasa a recogerlo." },
+  entregado:  { title: "Pedido entregado",       body: "Tu pedido fue entregado. ¡Que lo disfrutes!" },
+  cancelado:  { title: "Pedido cancelado",       body: "Tu pedido fue cancelado." },
+};
+
 // Descuenta del inventario los insumos consumidos por los ítems del pedido
 async function deductInventory(orderId: string): Promise<void> {
   const supabaseAdmin = createSupabaseAdminClient();
@@ -133,7 +141,7 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
 
   const { data: orderData, error: orderError } = await supabase
     .from("orders")
-    .select("id,status")
+    .select("id,status,user_id")
     .eq("id", context.params.orderId)
     .maybeSingle();
 
@@ -141,7 +149,7 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
     return NextResponse.json({ error: "Pedido no encontrado." }, { status: 404 });
   }
 
-  const order = orderData as unknown as { id: string; status: OrderStatus };
+  const order = orderData as unknown as { id: string; status: OrderStatus; user_id: string | null };
   const nextAllowed = allowedTransitions[order.status] ?? [];
   if (!nextAllowed.includes(payload.nextStatus)) {
     return badRequest(`Transicion invalida desde ${order.status} hacia ${payload.nextStatus}.`);
@@ -156,6 +164,24 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
 
   if (updateError) {
     return NextResponse.json({ error: "No pudimos actualizar el estado." }, { status: 500 });
+  }
+
+  // Crear notificación persistente in-app (fire and forget)
+  if (order.user_id) {
+    const notifContent = NOTIFICATION_CONTENT[payload.nextStatus];
+    if (notifContent) {
+      supabaseAdmin
+        .from("notifications")
+        .insert({
+          user_id: order.user_id,
+          order_id: order.id,
+          title: notifContent.title,
+          body: notifContent.body,
+        } as never)
+        .then(({ error: notifErr }: { error: unknown }) => {
+          if (notifErr) logger.error("Error creating notification", { orderId: order.id, error: notifErr });
+        });
+    }
   }
 
   // Notificar al cliente cuando el pedido está listo para recoger (fire and forget)
