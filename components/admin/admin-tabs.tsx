@@ -10,6 +10,7 @@ import { MenuManager } from "@/components/admin/menu-manager";
 import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
 import { RolePermissionsManager } from "@/components/admin/role-permissions-manager";
 import { ShiftPanel } from "@/components/admin/shift-panel";
+import { StoreSettingsPanel } from "@/components/admin/store-settings-panel";
 import { UserManager } from "@/components/admin/user-manager";
 import { WalkinOrderForm } from "@/components/admin/walkin-order-form";
 import type { AdminTabKey, InventoryItem } from "@/lib/types/domain";
@@ -73,6 +74,7 @@ const ALL_TABS: TabDef[] = [
   { key: "reportes", label: "Reportes" },
   { key: "descuentos", label: "Descuentos" },
   { key: "permisos", label: "Permisos" },
+  { key: "configuracion", label: "Config" },
 ];
 
 export function AdminTabs({
@@ -213,6 +215,15 @@ export function AdminTabs({
               Controla qué secciones puede ver cada rol. Los cambios aplican de inmediato.
             </p>
             <RolePermissionsManager isSuperAdmin={isSuperAdmin} />
+          </div>
+        )}
+
+        {resolvedActive === "configuracion" && (
+          <div>
+            <p className="text-sm text-cordero-espresso opacity-70">
+              Configura los parámetros de caja, horarios y umbrales de la tienda.
+            </p>
+            <StoreSettingsPanel />
           </div>
         )}
       </div>

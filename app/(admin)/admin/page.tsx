@@ -8,7 +8,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { AdminTabKey, InventoryItem, OrderStatus } from "@/lib/types/domain";
 
 // All tabs super_admin can always access
-const SUPER_ADMIN_TABS = new Set<AdminTabKey>(["pedidos", "alta", "menu", "inventario", "caja", "usuarios", "reportes", "descuentos", "permisos"]);
+const SUPER_ADMIN_TABS = new Set<AdminTabKey>(["pedidos", "alta", "menu", "inventario", "caja", "usuarios", "reportes", "descuentos", "permisos", "configuracion"]);
 
 export const dynamic = "force-dynamic";
 

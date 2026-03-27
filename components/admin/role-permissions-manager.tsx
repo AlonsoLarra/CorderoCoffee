@@ -30,6 +30,7 @@ const TAB_LABELS: Record<AdminTabKey, string> = {
   inventario: "Inventario",
   caja: "Caja",
   descuentos: "Descuentos",
+  configuracion: "Configuración",
 };
 
 const TAB_DESCRIPTIONS: Record<AdminTabKey, string> = {
@@ -42,6 +43,7 @@ const TAB_DESCRIPTIONS: Record<AdminTabKey, string> = {
   inventario: "Controlar stock de productos",
   caja: "Abrir y cerrar turnos de caja",
   descuentos: "Gestionar códigos de descuento",
+  configuracion: "Configurar parámetros de la tienda",
 };
 
 export function RolePermissionsManager({ isSuperAdmin }: { isSuperAdmin: boolean }) {
