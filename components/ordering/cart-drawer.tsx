@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { CartCheckout } from "./cart-checkout";
 import type { useCart } from "./use-cart";
@@ -13,6 +13,12 @@ type CartDrawerProps = {
 };
 
 export function CartDrawer({ isOpen, onClose, cart }: CartDrawerProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setMounted(true);
+  }, [isOpen]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
@@ -32,6 +38,8 @@ export function CartDrawer({ isOpen, onClose, cart }: CartDrawerProps) {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  if (!mounted) return null;
 
   return (
     <>
