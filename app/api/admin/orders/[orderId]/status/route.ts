@@ -226,6 +226,7 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
 
         const typedProfileData = profileData as unknown as { reward_points: number } | null;
         const currentPoints = typedProfileData?.reward_points ?? 0;
+        const newBalance = currentPoints + points;
 
         const profilesTable = supabase.from("profiles") as unknown as {
           update: (values: Record<string, unknown>) => {
@@ -233,8 +234,19 @@ export async function PATCH(request: Request, context: { params: { orderId: stri
           };
         };
         await profilesTable
-          .update({ reward_points: currentPoints + points, updated_at: new Date().toISOString() })
+          .update({ reward_points: newBalance, updated_at: new Date().toISOString() })
           .eq("id", typedOrderForPoints.user_id);
+
+        // Append to immutable audit trail
+        await supabaseAdmin
+          .from("loyalty_events")
+          .insert({
+            user_id: typedOrderForPoints.user_id,
+            order_id: order.id,
+            delta: points,
+            reason: "order_delivered",
+            balance_after: newBalance,
+          } as never);
       } catch {
         // Non-blocking: ignorar errores en otorgamiento de puntos
       }

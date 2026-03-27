@@ -147,24 +147,53 @@ export async function POST(request: Request) {
     return badRequest("Uno o mas productos no estan disponibles.");
   }
 
-  // Validate stock availability
+  // Validate stock availability with an optimistic fast-path check (good UX),
+  // then atomically reserve stock in the database to prevent race conditions
+  // when concurrent orders arrive for the same low-stock item.
   const quantityByItem = new Map<string, number>();
   for (const line of normalizedLines) {
     quantityByItem.set(line.itemId, (quantityByItem.get(line.itemId) ?? 0) + line.quantity);
   }
 
-  for (const item of typedMenuItems) {
-    if (item.track_stock && item.stock_quantity !== null) {
-      const requested = quantityByItem.get(item.id) ?? 0;
-      if (item.stock_quantity <= 0) {
-        return badRequest(`${item.name} está agotado.`);
-      }
-      if (requested > item.stock_quantity) {
-        return badRequest(
-          `Solo quedan ${item.stock_quantity} unidad${item.stock_quantity === 1 ? "" : "es"} de ${item.name}.`,
-        );
-      }
+  const trackedItems = typedMenuItems.filter((item) => item.track_stock && item.stock_quantity !== null);
+
+  // Fast-path: reject obviously-out-of-stock items before hitting the DB
+  for (const item of trackedItems) {
+    const requested = quantityByItem.get(item.id) ?? 0;
+    if (item.stock_quantity! <= 0) {
+      return badRequest(`${item.name} está agotado.`);
     }
+    if (requested > item.stock_quantity!) {
+      return badRequest(
+        `Solo quedan ${item.stock_quantity} unidad${item.stock_quantity === 1 ? "" : "es"} de ${item.name}.`,
+      );
+    }
+  }
+
+  // Atomic reservation: decrement stock in a single UPDATE per item so
+  // two simultaneous requests can never both claim the last unit.
+  const reservedItems: string[] = [];
+  for (const item of trackedItems) {
+    const qty = quantityByItem.get(item.id) ?? 0;
+    const { data: reserved, error: reserveError } = await (supabase as unknown as {
+      rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: boolean | null; error: unknown }>;
+    }).rpc("reserve_menu_item_stock", { p_item_id: item.id, p_qty: qty });
+
+    if (reserveError || !reserved) {
+      // Another request grabbed the last units between our read and now — undo
+      // any reservations already made in this loop, then surface the conflict.
+      for (const reservedId of reservedItems) {
+        const restoreQty = quantityByItem.get(reservedId) ?? 0;
+        await (supabase as unknown as {
+          rpc: (fn: string, args: Record<string, unknown>) => Promise<unknown>;
+        }).rpc("reserve_menu_item_stock", { p_item_id: reservedId, p_qty: -restoreQty });
+      }
+      return NextResponse.json(
+        { error: `${item.name} se agotó justo ahora. Intenta de nuevo.` },
+        { status: 409 },
+      );
+    }
+    reservedItems.push(item.id);
   }
 
   const priceByItem = new Map(typedMenuItems.map((item) => [item.id, Number(item.price)]));
@@ -300,12 +329,27 @@ export async function POST(request: Request) {
           .maybeSingle();
         const profile = profileData as unknown as { reward_points: number } | null;
         const current = profile?.reward_points ?? 0;
+        const newBalance = Math.max(0, current - pointsRedeemed);
+
         const profilesTable = supabase.from("profiles") as unknown as {
           update: (v: Record<string, unknown>) => { eq: (c: string, v: string) => Promise<unknown> };
         };
         await profilesTable
-          .update({ reward_points: Math.max(0, current - pointsRedeemed), updated_at: new Date().toISOString() })
+          .update({ reward_points: newBalance, updated_at: new Date().toISOString() })
           .eq("id", user.id);
+
+        // Append to immutable audit trail
+        await (supabase as unknown as {
+          from: (t: string) => { insert: (v: Record<string, unknown>) => Promise<unknown> };
+        })
+          .from("loyalty_events")
+          .insert({
+            user_id: user.id,
+            order_id: typedOrder.id,
+            delta: -pointsRedeemed,
+            reason: "redeemed",
+            balance_after: newBalance,
+          });
       } catch {
         // non-blocking
       }
