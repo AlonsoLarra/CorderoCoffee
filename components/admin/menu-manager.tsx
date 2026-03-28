@@ -53,6 +53,16 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
   // Category filter for the products panel
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
 
+  // Edit product inline panel
+  const [editOpenId, setEditOpenId] = useState<string | null>(null);
+  const [editFields, setEditFields] = useState<{
+    categoryId: string;
+    name: string;
+    description: string;
+    price: number;
+    sortOrder: number;
+  } | null>(null);
+
   // Receta: mapa itemId -> lista de ingredientes en edición
   const [recipeOpenId, setRecipeOpenId] = useState<string | null>(null);
   const [recipeMap, setRecipeMap] = useState<Record<string, IngredientRow[]>>({});
@@ -143,6 +153,41 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
     setNewItemDescription("");
     setNewItemPrice(0);
     setNewItemSort(0);
+  }
+
+  function openEdit(item: Item) {
+    if (editOpenId === item.id) {
+      setEditOpenId(null);
+      setEditFields(null);
+      return;
+    }
+    setEditOpenId(item.id);
+    setEditFields({
+      categoryId: item.category_id,
+      name: item.name,
+      description: item.description ?? "",
+      price: item.price,
+      sortOrder: item.sort_order,
+    });
+  }
+
+  async function saveEdit(itemId: string) {
+    if (!editFields) return;
+    await refreshAfter(() =>
+      fetch(`/api/admin/menu/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoryId: editFields.categoryId,
+          name: editFields.name,
+          description: editFields.description,
+          price: Number(editFields.price),
+          sortOrder: Number(editFields.sortOrder),
+        }),
+      }),
+    );
+    setEditOpenId(null);
+    setEditFields(null);
   }
 
   async function toggleItem(item: Item) {
@@ -411,6 +456,8 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
             const loadedRecipe = recipeMap[item.id];
             const isRecipeOpen = recipeOpenId === item.id;
 
+            const isEditOpen = editOpenId === item.id;
+
             return (
               <li key={item.id} className="rounded-xl border border-cordero text-sm">
                 {/* Item row */}
@@ -442,6 +489,17 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
                   <div className="flex shrink-0 gap-2">
                     <button
                       className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                        isEditOpen
+                          ? "border-transparent bg-cordero-espresso text-cordero-cream"
+                          : "border-cordero"
+                      }`}
+                      onClick={() => openEdit(item)}
+                      type="button"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
                         isRecipeOpen
                           ? "border-transparent bg-cordero-espresso text-cordero-cream"
                           : "border-cordero"
@@ -461,6 +519,72 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
                     </button>
                   </div>
                 </div>
+
+                {/* Edit product panel */}
+                {isEditOpen && editFields ? (
+                  <div className="border-t border-cordero px-3 py-3">
+                    <p className="mb-3 text-xs font-medium opacity-60">
+                      Editar <strong>{item.name}</strong>
+                    </p>
+                    <div className="space-y-2">
+                      <select
+                        className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                        onChange={(e) => setEditFields((prev) => prev && { ...prev, categoryId: e.target.value })}
+                        value={editFields.categoryId}
+                      >
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                        onChange={(e) => setEditFields((prev) => prev && { ...prev, name: e.target.value })}
+                        placeholder="Nombre"
+                        value={editFields.name}
+                      />
+                      <textarea
+                        className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                        onChange={(e) => setEditFields((prev) => prev && { ...prev, description: e.target.value })}
+                        placeholder="Descripción"
+                        rows={2}
+                        value={editFields.description}
+                      />
+                      <input
+                        className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                        onChange={(e) => setEditFields((prev) => prev && { ...prev, price: Number(e.target.value) })}
+                        placeholder="Precio"
+                        type="number"
+                        value={editFields.price}
+                      />
+                      <input
+                        className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
+                        onChange={(e) => setEditFields((prev) => prev && { ...prev, sortOrder: Number(e.target.value) })}
+                        placeholder="Orden"
+                        type="number"
+                        value={editFields.sortOrder}
+                      />
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream disabled:opacity-50"
+                          disabled={isPending}
+                          onClick={() => void saveEdit(item.id)}
+                          type="button"
+                        >
+                          Guardar
+                        </button>
+                        <button
+                          className="rounded-full border border-cordero px-3 py-1 text-xs"
+                          onClick={() => openEdit(item)}
+                          type="button"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
 
                 {/* Ingredient recipe panel */}
                 {isRecipeOpen ? (
