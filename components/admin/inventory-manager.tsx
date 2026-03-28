@@ -1,10 +1,16 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { useToast } from "@/components/ui/toast-provider";
 import type { InventoryItem } from "@/lib/types/domain";
+
+type RecipeUsage = {
+  menuItemId: string;
+  name: string;
+  quantity: number;
+};
 
 type InventoryManagerProps = {
   items: InventoryItem[];
@@ -26,7 +32,40 @@ export function InventoryManager({ items }: InventoryManagerProps) {
   // Stock editable en línea: itemId -> valor temporal
   const [editStockMap, setEditStockMap] = useState<Record<string, string>>({});
 
+  // Usage map: inventoryItemId -> list of menu items that use it
+  const [usageMap, setUsageMap] = useState<Record<string, RecipeUsage[]>>({});
+  const [expandedUsageId, setExpandedUsageId] = useState<string | null>(null);
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Fetch all recipes on mount to build usage map
+  useEffect(() => {
+    fetch("/api/admin/menu/recipes")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(
+        (data: {
+          recipes: {
+            menu_item_id: string;
+            inventory_item_id: string;
+            quantity: number;
+            menu_item_name: string;
+          }[];
+        } | null) => {
+          if (!data?.recipes) return;
+          const map: Record<string, RecipeUsage[]> = {};
+          for (const row of data.recipes) {
+            if (!map[row.inventory_item_id]) map[row.inventory_item_id] = [];
+            map[row.inventory_item_id].push({
+              menuItemId: row.menu_item_id,
+              name: row.menu_item_name,
+              quantity: row.quantity,
+            });
+          }
+          setUsageMap(map);
+        },
+      )
+      .catch(() => {});
+  }, []);
 
   async function refreshAfter(action: () => Promise<Response>) {
     setErrorMessage(null);
@@ -167,57 +206,108 @@ export function InventoryManager({ items }: InventoryManagerProps) {
                   <th className="pb-2 pr-4">Unidad</th>
                   <th className="pb-2 pr-4">Stock actual</th>
                   <th className="pb-2 pr-4">Mínimo</th>
+                  <th className="pb-2 pr-4">Usado en</th>
                   <th className="pb-2">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cordero">
-                {items.map((item) => (
-                  <tr key={item.id} className="align-middle">
-                    <td className="py-2 pr-4 font-medium">
-                      <span className="flex items-center gap-2">
-                        {item.name}
-                        {isLowStock(item) && (
-                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
-                            Stock bajo
+                {items.map((item) => {
+                  const usage = usageMap[item.id] ?? [];
+                  const isExpanded = expandedUsageId === item.id;
+
+                  return (
+                    <Fragment key={item.id}>
+                      <tr className="align-middle">
+                        <td className="py-2 pr-4 font-medium">
+                          <span className="flex items-center gap-2">
+                            {item.name}
+                            {isLowStock(item) && (
+                              <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                                Stock bajo
+                              </span>
+                            )}
                           </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4 opacity-70">{item.unit}</td>
-                    <td className="py-2 pr-4">
-                      <span className="flex items-center gap-1">
-                        <input
-                          className="w-24 rounded-xl border border-cordero bg-transparent px-2 py-1 text-sm"
-                          min={0}
-                          onBlur={() => updateStock(item)}
-                          onChange={(e) =>
-                            setEditStockMap((prev) => ({ ...prev, [item.id]: e.target.value }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") void updateStock(item);
-                          }}
-                          step="0.01"
-                          type="number"
-                          value={editStockMap[item.id] ?? item.current_stock}
-                        />
-                        <span className="text-xs opacity-60">{item.unit}</span>
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4 opacity-70">
-                      {item.minimum_stock !== null ? `${item.minimum_stock} ${item.unit}` : "—"}
-                    </td>
-                    <td className="py-2">
-                      <button
-                        className="rounded-full border border-cordero px-3 py-1 text-xs hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        disabled={isPending}
-                        onClick={() => deleteItem(item.id)}
-                        type="button"
-                      >
-                        Eliminar
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                        </td>
+                        <td className="py-2 pr-4 opacity-70">{item.unit}</td>
+                        <td className="py-2 pr-4">
+                          <span className="flex items-center gap-1">
+                            <input
+                              className="w-24 rounded-xl border border-cordero bg-transparent px-2 py-1 text-sm"
+                              min={0}
+                              onBlur={() => void updateStock(item)}
+                              onChange={(e) =>
+                                setEditStockMap((prev) => ({ ...prev, [item.id]: e.target.value }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") void updateStock(item);
+                              }}
+                              step="0.01"
+                              type="number"
+                              value={editStockMap[item.id] ?? item.current_stock}
+                            />
+                            <span className="text-xs opacity-60">{item.unit}</span>
+                          </span>
+                        </td>
+                        <td className="py-2 pr-4 opacity-70">
+                          {item.minimum_stock !== null ? `${item.minimum_stock} ${item.unit}` : "—"}
+                        </td>
+                        <td className="py-2 pr-4">
+                          {usage.length === 0 ? (
+                            <span className="text-xs opacity-40">Sin asignar</span>
+                          ) : (
+                            <button
+                              className={`rounded-full border px-2 py-0.5 text-xs transition-colors ${
+                                isExpanded
+                                  ? "border-transparent bg-cordero-espresso text-cordero-cream"
+                                  : "border-cordero hover:opacity-80"
+                              }`}
+                              onClick={() => setExpandedUsageId(isExpanded ? null : item.id)}
+                              type="button"
+                            >
+                              {usage.length} producto{usage.length !== 1 ? "s" : ""}
+                            </button>
+                          )}
+                        </td>
+                        <td className="py-2">
+                          <button
+                            className="rounded-full border border-cordero px-3 py-1 text-xs hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                            disabled={isPending}
+                            onClick={() => void deleteItem(item.id)}
+                            type="button"
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Expansion row: which products use this insumo */}
+                      {isExpanded && usage.length > 0 && (
+                        <tr>
+                          <td className="px-0 pb-3 pt-0" colSpan={6}>
+                            <div className="mx-1 rounded-xl bg-cordero/5 px-3 py-2">
+                              <p className="mb-1.5 text-xs opacity-50">
+                                Productos del menú que usan <strong>{item.name}</strong>:
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {usage.map((u) => (
+                                  <span
+                                    key={u.menuItemId}
+                                    className="rounded-full border border-cordero/30 bg-cordero-cream px-2.5 py-1 text-xs"
+                                  >
+                                    {u.name}
+                                    <span className="ml-1 opacity-60">
+                                      × {u.quantity} {item.unit}
+                                    </span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
