@@ -68,6 +68,15 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
   const [recipeMap, setRecipeMap] = useState<Record<string, IngredientRow[]>>({});
   const [recipeLoading, setRecipeLoading] = useState(false);
 
+  // ── Drag & Drop state ────────────────────────────────────────────
+  // Product → Category drag
+  const [draggingItemId, setDraggingItemId] = useState<string | null>(null);
+  const [dragOverCategoryId, setDragOverCategoryId] = useState<string | null>(null);
+
+  // Insumo → Recipe drag
+  const [draggingInsumoId, setDraggingInsumoId] = useState<string | null>(null);
+  const [dragOverRecipeId, setDragOverRecipeId] = useState<string | null>(null);
+
   // Items filtered by selected category
   const filteredItems =
     selectedCategoryId === "all"
@@ -200,6 +209,33 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
     );
   }
 
+  // ── Drag & Drop handlers ─────────────────────────────────────────
+
+  async function moveItemToCategory(itemId: string, categoryId: string) {
+    const item = items.find((i) => i.id === itemId);
+    if (!item || item.category_id === categoryId) return;
+
+    await refreshAfter(() =>
+      fetch(`/api/admin/menu/items/${itemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoryId }),
+      }),
+    );
+  }
+
+  function dropInsumoIntoRecipe(itemId: string, insumoId: string) {
+    const existing = recipeMap[itemId] ?? [];
+    if (existing.some((l) => l.inventoryItemId === insumoId)) {
+      showToast("Este insumo ya está en la receta.", "error");
+      return;
+    }
+    setRecipeMap((prev) => ({
+      ...prev,
+      [itemId]: [...(prev[itemId] ?? []), { inventoryItemId: insumoId, quantity: 1 }],
+    }));
+  }
+
   // ── Receta helpers ────────────────────────────────────────────────
 
   async function openRecipe(itemId: string) {
@@ -288,7 +324,9 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
       {/* ── Categorías ── */}
       <div className="rounded-2xl border border-cordero bg-cordero-card p-5">
         <h3 className="font-heading text-2xl">Categorías</h3>
-        <p className="mt-1 text-xs opacity-50">Haz clic en una categoría para filtrar los productos.</p>
+        <p className="mt-1 text-xs opacity-50">
+          Haz clic para filtrar · Arrastra un producto aquí para reclasificarlo.
+        </p>
 
         <div className="mt-4 space-y-3">
           <input
@@ -318,24 +356,56 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
           {categories.map((category) => {
             const count = items.filter((i) => i.category_id === category.id).length;
             const isSelected = selectedCategoryId === category.id;
+            const isDragTarget = dragOverCategoryId === category.id;
             return (
               <li
                 key={category.id}
                 className={`flex cursor-pointer items-center justify-between rounded-xl border px-3 py-2 text-sm transition-colors ${
-                  isSelected
+                  isDragTarget
+                    ? "border-cordero-espresso bg-cordero-espresso/10 scale-[1.01]"
+                    : isSelected
                     ? "border-cordero-espresso bg-cordero-espresso/5"
                     : "border-cordero hover:border-cordero-espresso/40"
                 } ${!category.is_active ? "opacity-50" : ""}`}
                 onClick={() => selectCategoryFilter(isSelected ? "all" : category.id)}
+                onDragOver={(e) => {
+                  if (!draggingItemId) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  setDragOverCategoryId(category.id);
+                }}
+                onDragLeave={(e) => {
+                  // Only clear if truly leaving this element (not entering a child)
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverCategoryId(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggingItemId) {
+                    void moveItemToCategory(draggingItemId, category.id);
+                  }
+                  setDragOverCategoryId(null);
+                  setDraggingItemId(null);
+                }}
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`h-2 w-2 rounded-full ${category.is_active ? "bg-green-500" : "bg-gray-400"}`}
-                  />
+                  {isDragTarget ? (
+                    <span className="h-2 w-2 rounded-full bg-cordero-espresso animate-pulse" />
+                  ) : (
+                    <span
+                      className={`h-2 w-2 rounded-full ${category.is_active ? "bg-green-500" : "bg-gray-400"}`}
+                    />
+                  )}
                   <span>{category.name}</span>
                   <span className="rounded-full bg-cordero/10 px-1.5 py-0.5 text-xs opacity-60">
                     {count}
                   </span>
+                  {isDragTarget && (
+                    <span className="text-xs text-cordero-espresso font-medium">
+                      Soltar aquí
+                    </span>
+                  )}
                 </div>
                 <button
                   className="rounded-full border border-cordero px-3 py-1 text-xs hover:opacity-80"
@@ -442,6 +512,12 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
           ))}
         </div>
 
+        {draggingItemId && (
+          <p className="mt-3 rounded-xl border border-cordero-espresso/30 bg-cordero-espresso/5 px-3 py-2 text-center text-xs text-cordero-espresso">
+            Arrastra hacia una categoría en el panel izquierdo para moverlo
+          </p>
+        )}
+
         <ul className="mt-3 space-y-2">
           {filteredItems.length === 0 && (
             <li className="rounded-xl border border-cordero px-3 py-4 text-center text-sm opacity-50">
@@ -455,15 +531,33 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
             const categoryName = categories.find((c) => c.id === item.category_id)?.name;
             const loadedRecipe = recipeMap[item.id];
             const isRecipeOpen = recipeOpenId === item.id;
-
             const isEditOpen = editOpenId === item.id;
+            const isDragging = draggingItemId === item.id;
 
             return (
-              <li key={item.id} className="rounded-xl border border-cordero text-sm">
+              <li
+                key={item.id}
+                draggable
+                onDragStart={(e) => {
+                  setDraggingItemId(item.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  // Show item name in drag ghost
+                  e.dataTransfer.setData("text/plain", item.name);
+                }}
+                onDragEnd={() => {
+                  setDraggingItemId(null);
+                  setDragOverCategoryId(null);
+                }}
+                className={`rounded-xl border border-cordero text-sm transition-opacity ${
+                  isDragging ? "opacity-40 cursor-grabbing" : "cursor-grab"
+                }`}
+              >
                 {/* Item row */}
                 <div className="flex items-start justify-between gap-2 px-3 py-2">
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Drag handle hint */}
+                      <span className="text-cordero/30 select-none" title="Arrastra para cambiar categoría">⠿</span>
                       <span className={item.is_active ? "" : "opacity-40 line-through"}>
                         {item.name}
                       </span>
@@ -600,46 +694,123 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
                         Primero agrega insumos en la pestaña Inventario.
                       </p>
                     ) : (
-                      <div className="space-y-2">
-                        {(recipeMap[item.id] ?? []).length === 0 && (
-                          <p className="text-xs opacity-50">
-                            Sin insumos asignados. Usa el botón de abajo para agregar.
-                          </p>
-                        )}
-                        {(recipeMap[item.id] ?? []).map((line, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <select
-                              className="flex-1 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
-                              onChange={(e) =>
-                                updateIngredientLine(item.id, index, "inventoryItemId", e.target.value)
-                              }
-                              value={line.inventoryItemId}
-                            >
-                              {inventoryItems.map((inv) => (
-                                <option key={inv.id} value={inv.id}>
-                                  {inv.name} ({inv.unit})
-                                </option>
-                              ))}
-                            </select>
-                            <input
-                              className="w-20 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
-                              min={0.001}
-                              onChange={(e) =>
-                                updateIngredientLine(item.id, index, "quantity", Number(e.target.value))
-                              }
-                              step="0.001"
-                              type="number"
-                              value={line.quantity}
-                            />
-                            <button
-                              className="rounded-full border border-cordero px-2 py-1 text-xs hover:text-red-600"
-                              onClick={() => removeIngredientLine(item.id, index)}
-                              type="button"
-                            >
-                              ✕
-                            </button>
+                      <div className="space-y-3">
+                        {/* Draggable insumos palette */}
+                        <div>
+                          <p className="mb-1.5 text-xs opacity-40">Arrastra un insumo a la lista:</p>
+                          <div className="overflow-x-auto pb-1">
+                            <div className="flex gap-1.5">
+                              {inventoryItems.map((inv) => {
+                                const alreadyAdded = (recipeMap[item.id] ?? []).some(
+                                  (l) => l.inventoryItemId === inv.id,
+                                );
+                                return (
+                                  <span
+                                    key={inv.id}
+                                    draggable={!alreadyAdded}
+                                    onDragStart={(e) => {
+                                      if (alreadyAdded) return;
+                                      setDraggingInsumoId(inv.id);
+                                      e.dataTransfer.effectAllowed = "copy";
+                                      e.dataTransfer.setData("text/plain", inv.name);
+                                      // Stop product drag from firing
+                                      e.stopPropagation();
+                                    }}
+                                    onDragEnd={() => {
+                                      setDraggingInsumoId(null);
+                                      setDragOverRecipeId(null);
+                                    }}
+                                    className={`whitespace-nowrap select-none rounded-full border px-2 py-0.5 text-xs transition-all ${
+                                      alreadyAdded
+                                        ? "border-cordero/20 opacity-30 cursor-default"
+                                        : draggingInsumoId === inv.id
+                                        ? "border-cordero-espresso bg-cordero-espresso text-cordero-cream opacity-70 cursor-grabbing"
+                                        : "border-cordero cursor-grab hover:border-cordero-espresso"
+                                    }`}
+                                  >
+                                    {inv.name}
+                                    <span className="ml-1 opacity-50">({inv.unit})</span>
+                                  </span>
+                                );
+                              })}
+                            </div>
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Drop zone / ingredient list */}
+                        <div
+                          className={`min-h-[48px] rounded-xl border-2 border-dashed p-2 transition-all ${
+                            dragOverRecipeId === item.id
+                              ? "border-cordero-espresso bg-cordero-espresso/5"
+                              : draggingInsumoId
+                              ? "border-cordero/50"
+                              : "border-cordero/20"
+                          }`}
+                          onDragOver={(e) => {
+                            if (!draggingInsumoId) return;
+                            e.preventDefault();
+                            e.dataTransfer.dropEffect = "copy";
+                            setDragOverRecipeId(item.id);
+                          }}
+                          onDragLeave={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                              setDragOverRecipeId(null);
+                            }
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (draggingInsumoId) {
+                              dropInsumoIntoRecipe(item.id, draggingInsumoId);
+                            }
+                            setDragOverRecipeId(null);
+                            setDraggingInsumoId(null);
+                          }}
+                        >
+                          {(recipeMap[item.id] ?? []).length === 0 && (
+                            <p className="py-1 text-center text-xs opacity-40">
+                              {dragOverRecipeId === item.id
+                                ? "Soltar aquí"
+                                : "Sin insumos · arrastra chips de arriba o usa el botón"}
+                            </p>
+                          )}
+
+                          <div className="space-y-2">
+                            {(recipeMap[item.id] ?? []).map((line, index) => (
+                              <div key={index} className="flex items-center gap-2">
+                                <select
+                                  className="flex-1 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
+                                  onChange={(e) =>
+                                    updateIngredientLine(item.id, index, "inventoryItemId", e.target.value)
+                                  }
+                                  value={line.inventoryItemId}
+                                >
+                                  {inventoryItems.map((inv) => (
+                                    <option key={inv.id} value={inv.id}>
+                                      {inv.name} ({inv.unit})
+                                    </option>
+                                  ))}
+                                </select>
+                                <input
+                                  className="w-20 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
+                                  min={0.001}
+                                  onChange={(e) =>
+                                    updateIngredientLine(item.id, index, "quantity", Number(e.target.value))
+                                  }
+                                  step="0.001"
+                                  type="number"
+                                  value={line.quantity}
+                                />
+                                <button
+                                  className="rounded-full border border-cordero px-2 py-1 text-xs hover:text-red-600"
+                                  onClick={() => removeIngredientLine(item.id, index)}
+                                  type="button"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
                         <div className="flex gap-2 pt-1">
                           <button
