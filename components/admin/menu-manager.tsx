@@ -50,10 +50,27 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Category filter for the products panel
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("all");
+
   // Receta: mapa itemId -> lista de ingredientes en edición
   const [recipeOpenId, setRecipeOpenId] = useState<string | null>(null);
   const [recipeMap, setRecipeMap] = useState<Record<string, IngredientRow[]>>({});
   const [recipeLoading, setRecipeLoading] = useState(false);
+
+  // Items filtered by selected category
+  const filteredItems =
+    selectedCategoryId === "all"
+      ? items
+      : items.filter((item) => item.category_id === selectedCategoryId);
+
+  // Selecting a category filter also pre-fills the new item form
+  function selectCategoryFilter(catId: string) {
+    setSelectedCategoryId(catId);
+    if (catId !== "all") {
+      setNewItemCategoryId(catId);
+    }
+  }
 
   async function refreshAfter(action: () => Promise<Response>) {
     setErrorMessage(null);
@@ -148,7 +165,6 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
 
     setRecipeOpenId(itemId);
 
-    // Si ya cargamos la receta, no volver a fetchar
     if (recipeMap[itemId]) return;
 
     setRecipeLoading(true);
@@ -224,8 +240,10 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
 
   return (
     <section className="mt-10 grid gap-8 lg:grid-cols-2">
+      {/* ── Categorías ── */}
       <div className="rounded-2xl border border-cordero bg-cordero-card p-5">
         <h3 className="font-heading text-2xl">Categorías</h3>
+        <p className="mt-1 text-xs opacity-50">Haz clic en una categoría para filtrar los productos.</p>
 
         <div className="mt-4 space-y-3">
           <input
@@ -252,25 +270,54 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
         </div>
 
         <ul className="mt-5 space-y-2">
-          {categories.map((category) => (
-            <li key={category.id} className="flex items-center justify-between rounded-xl border border-cordero px-3 py-2 text-sm">
-              <span>
-                {category.name} ({category.sort_order})
-              </span>
-              <button
-                className="rounded-full border border-cordero px-3 py-1 text-xs"
-                onClick={() => toggleCategory(category)}
-                type="button"
+          {categories.map((category) => {
+            const count = items.filter((i) => i.category_id === category.id).length;
+            const isSelected = selectedCategoryId === category.id;
+            return (
+              <li
+                key={category.id}
+                className={`flex cursor-pointer items-center justify-between rounded-xl border px-3 py-2 text-sm transition-colors ${
+                  isSelected
+                    ? "border-cordero-espresso bg-cordero-espresso/5"
+                    : "border-cordero hover:border-cordero-espresso/40"
+                } ${!category.is_active ? "opacity-50" : ""}`}
+                onClick={() => selectCategoryFilter(isSelected ? "all" : category.id)}
               >
-                {category.is_active ? "Desactivar" : "Activar"}
-              </button>
-            </li>
-          ))}
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`h-2 w-2 rounded-full ${category.is_active ? "bg-green-500" : "bg-gray-400"}`}
+                  />
+                  <span>{category.name}</span>
+                  <span className="rounded-full bg-cordero/10 px-1.5 py-0.5 text-xs opacity-60">
+                    {count}
+                  </span>
+                </div>
+                <button
+                  className="rounded-full border border-cordero px-3 py-1 text-xs hover:opacity-80"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void toggleCategory(category);
+                  }}
+                  type="button"
+                >
+                  {category.is_active ? "Desactivar" : "Activar"}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
+      {/* ── Productos ── */}
       <div className="rounded-2xl border border-cordero bg-cordero-card p-5">
-        <h3 className="font-heading text-2xl">Productos</h3>
+        <div className="flex items-baseline justify-between gap-2">
+          <h3 className="font-heading text-2xl">Productos</h3>
+          {selectedCategoryId !== "all" && (
+            <span className="text-xs opacity-50">
+              Categoría: <strong className="opacity-100">{categories.find((c) => c.id === selectedCategoryId)?.name}</strong>
+            </span>
+          )}
+        </div>
 
         <div className="mt-4 space-y-3">
           <select
@@ -321,109 +368,178 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
           </button>
         </div>
 
-        <ul className="mt-5 space-y-2">
-          {items.map((item) => (
-            <li key={item.id} className="rounded-xl border border-cordero text-sm">
-              {/* Fila principal del ítem */}
-              <div className="flex items-center justify-between px-3 py-2">
-                <span>
-                  {item.name} - ${item.price}
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    className="rounded-full border border-cordero px-3 py-1 text-xs"
-                    onClick={() => openRecipe(item.id)}
-                    title="Editar receta de insumos"
-                    type="button"
-                  >
-                    {recipeOpenId === item.id ? "Cerrar receta" : "Receta"}
-                  </button>
-                  <button
-                    className="rounded-full border border-cordero px-3 py-1 text-xs"
-                    onClick={() => toggleItem(item)}
-                    type="button"
-                  >
-                    {item.is_active ? "Desactivar" : "Activar"}
-                  </button>
+        {/* Category filter pills */}
+        <div className="mt-5 flex flex-wrap gap-1.5">
+          <button
+            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+              selectedCategoryId === "all"
+                ? "border-transparent bg-cordero-espresso text-cordero-cream"
+                : "border-cordero hover:opacity-80"
+            }`}
+            onClick={() => selectCategoryFilter("all")}
+            type="button"
+          >
+            Todas ({items.length})
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                selectedCategoryId === cat.id
+                  ? "border-transparent bg-cordero-espresso text-cordero-cream"
+                  : "border-cordero hover:opacity-80"
+              } ${!cat.is_active ? "opacity-50" : ""}`}
+              onClick={() => selectCategoryFilter(cat.id)}
+              type="button"
+            >
+              {cat.name} ({items.filter((i) => i.category_id === cat.id).length})
+            </button>
+          ))}
+        </div>
+
+        <ul className="mt-3 space-y-2">
+          {filteredItems.length === 0 && (
+            <li className="rounded-xl border border-cordero px-3 py-4 text-center text-sm opacity-50">
+              {selectedCategoryId === "all"
+                ? "No hay productos aún."
+                : "Esta categoría no tiene productos todavía."}
+            </li>
+          )}
+
+          {filteredItems.map((item) => {
+            const categoryName = categories.find((c) => c.id === item.category_id)?.name;
+            const loadedRecipe = recipeMap[item.id];
+            const isRecipeOpen = recipeOpenId === item.id;
+
+            return (
+              <li key={item.id} className="rounded-xl border border-cordero text-sm">
+                {/* Item row */}
+                <div className="flex items-start justify-between gap-2 px-3 py-2">
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className={item.is_active ? "" : "opacity-40 line-through"}>
+                        {item.name}
+                      </span>
+                      <span className="font-medium">${item.price}</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {/* Show category tag when viewing all */}
+                      {selectedCategoryId === "all" && categoryName && (
+                        <span className="rounded-full bg-cordero/10 px-2 py-0.5 text-xs opacity-70">
+                          {categoryName}
+                        </span>
+                      )}
+                      {/* Show ingredient count once recipe is loaded */}
+                      {loadedRecipe !== undefined && (
+                        <span className="rounded-full border border-cordero/30 px-2 py-0.5 text-xs opacity-50">
+                          {loadedRecipe.length === 0
+                            ? "Sin insumos"
+                            : `${loadedRecipe.length} insumo${loadedRecipe.length !== 1 ? "s" : ""}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                        isRecipeOpen
+                          ? "border-transparent bg-cordero-espresso text-cordero-cream"
+                          : "border-cordero"
+                      }`}
+                      onClick={() => void openRecipe(item.id)}
+                      title="Ver y editar insumos que consume este producto"
+                      type="button"
+                    >
+                      Insumos
+                    </button>
+                    <button
+                      className="rounded-full border border-cordero px-3 py-1 text-xs"
+                      onClick={() => void toggleItem(item)}
+                      type="button"
+                    >
+                      {item.is_active ? "Desactivar" : "Activar"}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Panel de receta expandible */}
-              {recipeOpenId === item.id ? (
-                <div className="border-t border-cordero px-3 py-3">
-                  <p className="mb-2 text-xs font-medium opacity-60">
-                    Insumos que consume este producto por unidad pedida
-                  </p>
+                {/* Ingredient recipe panel */}
+                {isRecipeOpen ? (
+                  <div className="border-t border-cordero px-3 py-3">
+                    <p className="mb-2 text-xs font-medium opacity-60">
+                      Insumos que consume <strong>{item.name}</strong> por unidad pedida
+                    </p>
 
-                  {recipeLoading ? (
-                    <p className="text-xs opacity-60">Cargando…</p>
-                  ) : (
-                    <>
-                      {inventoryItems.length === 0 ? (
-                        <p className="text-xs opacity-60">
-                          Primero agrega insumos en la pestaña Inventario.
-                        </p>
-                      ) : (
-                        <div className="space-y-2">
-                          {(recipeMap[item.id] ?? []).map((line, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <select
-                                className="flex-1 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
-                                onChange={(e) =>
-                                  updateIngredientLine(item.id, index, "inventoryItemId", e.target.value)
-                                }
-                                value={line.inventoryItemId}
-                              >
-                                {inventoryItems.map((inv) => (
-                                  <option key={inv.id} value={inv.id}>
-                                    {inv.name} ({inv.unit})
-                                  </option>
-                                ))}
-                              </select>
-                              <input
-                                className="w-20 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
-                                min={0.001}
-                                onChange={(e) =>
-                                  updateIngredientLine(item.id, index, "quantity", Number(e.target.value))
-                                }
-                                step="0.001"
-                                type="number"
-                                value={line.quantity}
-                              />
-                              <button
-                                className="rounded-full border border-cordero px-2 py-1 text-xs hover:text-red-600"
-                                onClick={() => removeIngredientLine(item.id, index)}
-                                type="button"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
-
-                          <div className="flex gap-2 pt-1">
+                    {recipeLoading ? (
+                      <p className="text-xs opacity-60">Cargando…</p>
+                    ) : inventoryItems.length === 0 ? (
+                      <p className="text-xs opacity-60">
+                        Primero agrega insumos en la pestaña Inventario.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {(recipeMap[item.id] ?? []).length === 0 && (
+                          <p className="text-xs opacity-50">
+                            Sin insumos asignados. Usa el botón de abajo para agregar.
+                          </p>
+                        )}
+                        {(recipeMap[item.id] ?? []).map((line, index) => (
+                          <div key={index} className="flex items-center gap-2">
+                            <select
+                              className="flex-1 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
+                              onChange={(e) =>
+                                updateIngredientLine(item.id, index, "inventoryItemId", e.target.value)
+                              }
+                              value={line.inventoryItemId}
+                            >
+                              {inventoryItems.map((inv) => (
+                                <option key={inv.id} value={inv.id}>
+                                  {inv.name} ({inv.unit})
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              className="w-20 rounded-xl border border-cordero bg-transparent px-2 py-1 text-xs"
+                              min={0.001}
+                              onChange={(e) =>
+                                updateIngredientLine(item.id, index, "quantity", Number(e.target.value))
+                              }
+                              step="0.001"
+                              type="number"
+                              value={line.quantity}
+                            />
                             <button
-                              className="rounded-full border border-cordero px-3 py-1 text-xs"
-                              onClick={() => addIngredientLine(item.id)}
+                              className="rounded-full border border-cordero px-2 py-1 text-xs hover:text-red-600"
+                              onClick={() => removeIngredientLine(item.id, index)}
                               type="button"
                             >
-                              + Ingrediente
-                            </button>
-                            <button
-                              className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
-                              onClick={() => saveRecipe(item.id)}
-                              type="button"
-                            >
-                              Guardar receta
+                              ✕
                             </button>
                           </div>
+                        ))}
+
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            className="rounded-full border border-cordero px-3 py-1 text-xs"
+                            onClick={() => addIngredientLine(item.id)}
+                            type="button"
+                          >
+                            + Insumo
+                          </button>
+                          <button
+                            className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream"
+                            onClick={() => void saveRecipe(item.id)}
+                            type="button"
+                          >
+                            Guardar
+                          </button>
                         </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : null}
-            </li>
-          ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       </div>
 
