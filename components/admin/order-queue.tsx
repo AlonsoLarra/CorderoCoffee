@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -93,9 +93,12 @@ type OrderCardProps = {
   onCancel: (orderId: string) => void;
   onReopen: (orderId: string) => void;
   isPending: boolean;
+  dragging?: boolean;
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
 };
 
-function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPending }: OrderCardProps) {
+function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPending, dragging, onDragStart, onDragEnd }: OrderCardProps) {
   const elapsedMinutes = minutesSince(order.createdAt);
   const urgency = urgencyBadge(elapsedMinutes, order.status);
   const actionLabel = nextTransitionLabel[order.status];
@@ -103,9 +106,16 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
 
   return (
     <article
-      className={`rounded-2xl border bg-cordero-card p-4 transition-opacity ${
-        faded ? "opacity-50" : "opacity-100"
-      } border-cordero`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", order.id);
+        onDragStart?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      className={`rounded-2xl border bg-cordero-card p-4 transition-opacity border-cordero ${
+        dragging ? "opacity-40 cursor-grabbing" : "cursor-grab"
+      } ${faded && !dragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <span className="font-heading text-base text-cordero-espresso">#{order.id.slice(0, 8)}</span>
@@ -185,12 +195,32 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
   );
 }
 
+const allowedDropTransitions: Record<OrderStatus, OrderStatus[]> = {
+  pendiente: ["aceptado", "cancelado"],
+  aceptado: ["preparando", "cancelado"],
+  preparando: ["listo", "cancelado"],
+  listo: ["entregado", "cancelado"],
+  entregado: [],
+  cancelado: ["pendiente"],
+};
+
 export function OrderQueue({ orders }: OrderQueueProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canceledOpen, setCanceledOpen] = useState<boolean>(false);
+  const [draggingOrderId, setDraggingOrderId] = useState<string | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<OrderStatus | null>(null);
+
+  const canDrop = useCallback(
+    (orderId: string, targetStatus: OrderStatus): boolean => {
+      const order = orders.find((o) => o.id === orderId);
+      if (!order || order.status === targetStatus) return false;
+      return allowedDropTransitions[order.status]?.includes(targetStatus) ?? false;
+    },
+    [orders],
+  );
 
   useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -246,10 +276,37 @@ export function OrderQueue({ orders }: OrderQueueProps) {
             const columnOrders = activeOrders.filter((o) => o.status === status);
             const faded = status === "entregado";
 
+            const isDropTarget = dragOverStatus === status && draggingOrderId !== null && canDrop(draggingOrderId, status);
+
             return (
               <div
                 key={status}
-                className={`flex w-60 flex-shrink-0 flex-col rounded-2xl border-t-4 bg-cordero-card/40 p-3 ${accent}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  if (draggingOrderId && canDrop(draggingOrderId, status)) {
+                    e.dataTransfer.dropEffect = "move";
+                    setDragOverStatus(status);
+                  } else {
+                    e.dataTransfer.dropEffect = "none";
+                  }
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDragOverStatus(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOverStatus(null);
+                  if (!draggingOrderId || !canDrop(draggingOrderId, status)) return;
+                  void updateStatus(draggingOrderId, status);
+                  setDraggingOrderId(null);
+                }}
+                className={`flex w-60 flex-shrink-0 flex-col rounded-2xl border-t-4 p-3 transition-colors ${accent} ${
+                  isDropTarget
+                    ? "bg-cordero-card/80 ring-2 ring-cordero-espresso/30"
+                    : "bg-cordero-card/40"
+                }`}
               >
                 <div className="mb-3 flex items-center justify-between">
                   <h3 className="font-heading text-sm text-cordero-espresso">{label}</h3>
@@ -260,15 +317,27 @@ export function OrderQueue({ orders }: OrderQueueProps) {
 
                 <div className="flex flex-col gap-3">
                   {columnOrders.length === 0 ? (
-                    <p className="py-4 text-center text-xs text-cordero-espresso opacity-40">—</p>
+                    <p
+                      className={`py-4 text-center text-xs text-cordero-espresso transition-opacity ${
+                        isDropTarget ? "opacity-60" : "opacity-40"
+                      }`}
+                    >
+                      {isDropTarget ? "Soltar aquí" : "—"}
+                    </p>
                   ) : (
                     columnOrders.map((order) => (
                       <OrderCardComponent
                         key={order.id}
+                        dragging={draggingOrderId === order.id}
                         faded={faded}
                         isPending={isPending}
                         onAction={(id, next) => updateStatus(id, next)}
                         onCancel={(id) => updateStatus(id, "cancelado")}
+                        onDragEnd={() => {
+                          setDraggingOrderId(null);
+                          setDragOverStatus(null);
+                        }}
+                        onDragStart={() => setDraggingOrderId(order.id)}
                         onReopen={(id) => updateStatus(id, "pendiente")}
                         order={order}
                       />
@@ -300,10 +369,16 @@ export function OrderQueue({ orders }: OrderQueueProps) {
               {canceledOrders.map((order) => (
                 <OrderCardComponent
                   key={order.id}
+                  dragging={draggingOrderId === order.id}
                   faded
                   isPending={isPending}
                   onAction={(id, next) => updateStatus(id, next)}
                   onCancel={(id) => updateStatus(id, "cancelado")}
+                  onDragEnd={() => {
+                    setDraggingOrderId(null);
+                    setDragOverStatus(null);
+                  }}
+                  onDragStart={() => setDraggingOrderId(order.id)}
                   onReopen={(id) => updateStatus(id, "pendiente")}
                   order={order}
                 />
