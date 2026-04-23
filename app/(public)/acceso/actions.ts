@@ -14,6 +14,10 @@ import {
   getEmailVerificationErrorMessage,
   isEmailVerified,
 } from "@/lib/supabase/email-verification";
+import {
+  createEmailVerificationToken,
+  getVerificationLink,
+} from "@/lib/supabase/email-tokens";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 
@@ -130,7 +134,9 @@ export async function signUpAction(formData: FormData): Promise<void> {
 
   const supabase = createSupabaseServerClient();
   const appBaseUrl = getAppBaseUrl();
-  const { error } = await supabase.auth.signUp({
+
+  // Sign up in Supabase (with email redirect but we'll use custom token)
+  const { data: authData, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -149,10 +155,21 @@ export async function signUpAction(formData: FormData): Promise<void> {
     toRegistroError("No pudimos crear tu cuenta en este momento.");
   }
 
-  void sendWelcomePendingConfirmationEmail({
-    toEmail: email,
-    appBaseUrl,
+  // Create verification token for custom email flow
+  const tokenData = await createEmailVerificationToken({
+    userId: authData?.user?.id,
+    email,
+    tokenType: "signup_verification",
   });
+
+  if (tokenData) {
+    // Send email via Resend with verification link (PRIMARY)
+    void sendWelcomePendingConfirmationEmail({
+      toEmail: email,
+      appBaseUrl,
+      verificationToken: tokenData.token,
+    });
+  }
 
   redirect(`/acceso?success=${encodeURIComponent("Cuenta creada. Revisa tu correo para confirmar tu acceso.")}`);
 }
@@ -177,18 +194,41 @@ export async function forgotPasswordAction(formData: FormData): Promise<void> {
 
   const supabase = createSupabaseServerClient();
   const appBaseUrl = getAppBaseUrl();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
+
+  // Check if user exists with this email
+  const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(email).catch(() => ({
+    data: null,
+    error: new Error("User lookup failed"),
+  }));
+
+  // Create verification token (works even if user doesn't exist, for security)
+  const tokenData = await createEmailVerificationToken({
+    userId: authUser?.user?.id,
+    email,
+    tokenType: "password_reset",
   });
 
-  if (error) {
-    toRecuperarError("No pudimos enviar el enlace por ahora. Intenta de nuevo en unos minutos.");
+  if (tokenData) {
+    // Send email via Resend with reset link (PRIMARY)
+    void sendPasswordResetRequestedEmail({
+      toEmail: email,
+      appBaseUrl,
+      verificationToken: tokenData.token,
+    });
   }
 
-  void sendPasswordResetRequestedEmail({
-    toEmail: email,
-    appBaseUrl,
-  });
+  // Also trigger Supabase reset (user gets two emails but Resend is the main one)
+  if (authUser?.user?.id) {
+    void supabase.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: {
+        redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
+      },
+    }).catch(() => {
+      // Silently fail if Supabase reset link generation fails
+    });
+  }
 
   redirect(
     `/acceso/recuperar?success=${encodeURIComponent(
@@ -237,18 +277,40 @@ export async function resendConfirmationAction(formData: FormData): Promise<void
 
   const appBaseUrl = getAppBaseUrl();
   const supabase = createSupabaseServerClient();
-  await supabase.auth.resend({
-    type: "signup",
+
+  // Check if user exists
+  const { data: authUser } = await supabase.auth.admin
+    .getUserByEmail(email)
+    .catch(() => ({ data: null }));
+
+  // Create a new verification token
+  const tokenData = await createEmailVerificationToken({
+    userId: authUser?.user?.id,
     email,
-    options: {
-      emailRedirectTo: `${appBaseUrl}/acceso`,
-    },
+    tokenType: "signup_verification",
   });
 
-  void sendConfirmationLinkRequestedEmail({
-    toEmail: email,
-    appBaseUrl,
-  });
+  if (tokenData) {
+    // Send email via Resend with verification link (PRIMARY)
+    void sendConfirmationLinkRequestedEmail({
+      toEmail: email,
+      appBaseUrl,
+      verificationToken: tokenData.token,
+    });
+  }
+
+  // Also attempt Supabase resend as fallback
+  void supabase.auth
+    .resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: `${appBaseUrl}/acceso`,
+      },
+    })
+    .catch(() => {
+      // Silently fail if Supabase resend fails
+    });
 
   redirect(
     `/acceso?success=${encodeURIComponent(

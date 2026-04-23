@@ -6,6 +6,10 @@ type AccountEmailPayload = {
   appBaseUrl: string;
 };
 
+type AccountEmailWithTokenPayload = AccountEmailPayload & {
+  verificationToken: string;
+};
+
 async function sendAccountEmail(params: {
   toEmail: string;
   subject: string;
@@ -37,14 +41,26 @@ async function sendAccountEmail(params: {
 export async function sendWelcomePendingConfirmationEmail({
   toEmail,
   appBaseUrl,
-}: AccountEmailPayload): Promise<void> {
+  verificationToken,
+}: AccountEmailWithTokenPayload): Promise<void> {
+  const verificationUrl = `${appBaseUrl}/acceso/verificar-email?token=${verificationToken}`;
+  
   const html = `
-    <h2>Confirma tu cuenta de Cordero Coffee Club</h2>
-    <p>Recibimos una solicitud para crear una cuenta con este correo.</p>
-    <p>Te enviamos también un enlace oficial de confirmación desde Supabase. Si no lo encuentras, revisa spam/promociones.</p>
-    <p>Después de confirmar, podrás iniciar sesión aquí:</p>
-    <p><a href="${appBaseUrl}/acceso">${appBaseUrl}/acceso</a></p>
-    <p>Si no fuiste tú, ignora este correo.</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Confirma tu cuenta en Cordero Coffee Club</h2>
+      <p style="color: #666; font-size: 16px;">Hola,</p>
+      <p style="color: #666; font-size: 16px;">Recibimos una solicitud para crear una cuenta con este correo. Haz clic en el botón de abajo para confirmar tu cuenta:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verificationUrl}" style="background-color: #8B5A3C; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-size: 16px;">Confirmar mi cuenta</a>
+      </div>
+      
+      <p style="color: #666; font-size: 14px;">O copia este link si el botón no funciona:</p>
+      <p style="color: #0066cc; font-size: 12px; word-break: break-all;"><a href="${verificationUrl}">${verificationUrl}</a></p>
+      
+      <p style="color: #999; font-size: 12px; margin-top: 30px;">Si no fuiste tú quien solicitó esta cuenta, ignora este correo.</p>
+      <p style="color: #999; font-size: 12px;">Este enlace vence en 24 horas.</p>
+    </div>
   `;
 
   await sendAccountEmail({
@@ -57,14 +73,26 @@ export async function sendWelcomePendingConfirmationEmail({
 export async function sendConfirmationLinkRequestedEmail({
   toEmail,
   appBaseUrl,
-}: AccountEmailPayload): Promise<void> {
+  verificationToken,
+}: AccountEmailWithTokenPayload): Promise<void> {
+  const verificationUrl = `${appBaseUrl}/acceso/verificar-email?token=${verificationToken}`;
+  
   const html = `
-    <h2>Reenvío de confirmación solicitado</h2>
-    <p>Solicitaste reenviar el correo de confirmación de tu cuenta.</p>
-    <p>Te acabamos de mandar un nuevo enlace oficial de verificación.</p>
-    <p>Cuando confirmes, inicia sesión en:</p>
-    <p><a href="${appBaseUrl}/acceso">${appBaseUrl}/acceso</a></p>
-    <p>Si no fuiste tú, ignora este correo.</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Reenvío de confirmación</h2>
+      <p style="color: #666; font-size: 16px;">Hola,</p>
+      <p style="color: #666; font-size: 16px;">Solicitaste reenviar el correo de confirmación. Haz clic en el botón de abajo para confirmar tu cuenta:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${verificationUrl}" style="background-color: #8B5A3C; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-size: 16px;">Confirmar mi cuenta</a>
+      </div>
+      
+      <p style="color: #666; font-size: 14px;">O copia este link si el botón no funciona:</p>
+      <p style="color: #0066cc; font-size: 12px; word-break: break-all;"><a href="${verificationUrl}">${verificationUrl}</a></p>
+      
+      <p style="color: #999; font-size: 12px; margin-top: 30px;">Si no fuiste tú quien solicitó esto, ignora este correo.</p>
+      <p style="color: #999; font-size: 12px;">Este enlace vence en 24 horas.</p>
+    </div>
   `;
 
   await sendAccountEmail({
@@ -77,18 +105,31 @@ export async function sendConfirmationLinkRequestedEmail({
 export async function sendPasswordResetRequestedEmail({
   toEmail,
   appBaseUrl,
-}: AccountEmailPayload): Promise<void> {
+  verificationToken,
+}: AccountEmailWithTokenPayload): Promise<void> {
+  const resetUrl = `${appBaseUrl}/acceso/nueva-contrasena?token=${verificationToken}`;
+  
   const html = `
-    <h2>Solicitud para restablecer contraseña</h2>
-    <p>Se solicitó restablecer la contraseña de tu cuenta.</p>
-    <p>Te enviamos un enlace oficial para cambiarla.</p>
-    <p>Si no fuiste tú, te recomendamos iniciar sesión y actualizar tu contraseña desde tu perfil.</p>
-    <p><a href="${appBaseUrl}/acceso">Ir a acceso</a></p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #333;">Restablece tu contraseña</h2>
+      <p style="color: #666; font-size: 16px;">Hola,</p>
+      <p style="color: #666; font-size: 16px;">Recibimos una solicitud para restablecer tu contraseña. Haz clic en el botón de abajo para crear una nueva:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${resetUrl}" style="background-color: #8B5A3C; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; font-size: 16px;">Restablecer contraseña</a>
+      </div>
+      
+      <p style="color: #666; font-size: 14px;">O copia este link si el botón no funciona:</p>
+      <p style="color: #0066cc; font-size: 12px; word-break: break-all;"><a href="${resetUrl}">${resetUrl}</a></p>
+      
+      <p style="color: #999; font-size: 12px; margin-top: 30px;">Si no fuiste tú quien solicitó este cambio, te recomendamos cambiar tu contraseña inmediatamente desde tu cuenta.</p>
+      <p style="color: #999; font-size: 12px;">Este enlace vence en 24 horas.</p>
+    </div>
   `;
 
   await sendAccountEmail({
     toEmail,
-    subject: "Solicitud de recuperación de contraseña",
+    subject: "Restablece tu contraseña en Cordero Coffee Club",
     html,
   });
 }

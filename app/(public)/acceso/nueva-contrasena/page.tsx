@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -9,29 +9,41 @@ import { COPY } from "@/lib/copy";
 
 export default function NuevaContrasenaPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [flowType, setFlowType] = useState<"custom" | "supabase" | null>(null);
 
   useEffect(() => {
-    // Supabase places auth tokens in the URL hash after the password reset link is clicked.
-    // We need to let it process before allowing the form to be submitted.
-    const supabase = createSupabaseBrowserClient();
+    // Check if we have a custom token or if Supabase is handling it
+    if (token) {
+      setFlowType("custom");
+      setIsReady(true);
+    } else {
+      // Supabase places auth tokens in the URL hash after the password reset link is clicked.
+      const supabase = createSupabaseBrowserClient();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsReady(true);
-      }
-    });
+      const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+        if (event === "PASSWORD_RECOVERY") {
+          setFlowType("supabase");
+          setIsReady(true);
+        }
+      });
 
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+      return () => {
+        listener.subscription.unsubscribe();
+      };
+    }
+  }, [token]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
     const password = (formData.get("password") as string).trim();
@@ -39,24 +51,53 @@ export default function NuevaContrasenaPage() {
 
     if (password.length < 8) {
       setError(COPY.auth.newPasswordMinLength);
+      setIsSubmitting(false);
       return;
     }
 
     if (password !== confirmPassword) {
       setError(COPY.auth.newPasswordMismatch);
+      setIsSubmitting(false);
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    try {
+      if (flowType === "custom" && token) {
+        // Use custom token endpoint
+        const response = await fetch("/api/auth/reset-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, password }),
+        });
 
-    if (updateError) {
+        if (!response.ok) {
+          const data = (await response.json()) as { error?: string };
+          setError(data.error || COPY.auth.errorGeneric);
+          setIsSubmitting(false);
+          return;
+        }
+
+        setSuccess(true);
+        setTimeout(() => router.push("/acceso"), 3000);
+      } else if (flowType === "supabase") {
+        // Use Supabase's built-in update
+        const supabase = createSupabaseBrowserClient();
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+
+        if (updateError) {
+          setError(COPY.auth.errorGeneric);
+          setIsSubmitting(false);
+          return;
+        }
+
+        setSuccess(true);
+        setTimeout(() => router.push("/acceso"), 3000);
+      }
+    } catch (err) {
+      console.error("Password reset error:", err);
       setError(COPY.auth.errorGeneric);
-      return;
+      setIsSubmitting(false);
     }
-
-    setSuccess(true);
-    setTimeout(() => router.push("/acceso"), 3000);
   }
 
   return (
@@ -94,6 +135,7 @@ export default function NuevaContrasenaPage() {
             type="password"
             minLength={8}
             required
+            disabled={isSubmitting}
           />
 
           <label className="mt-4 block text-sm" htmlFor="confirmPassword">
@@ -106,13 +148,15 @@ export default function NuevaContrasenaPage() {
             type="password"
             minLength={8}
             required
+            disabled={isSubmitting}
           />
 
           <button
-            className="mt-6 w-full rounded-full bg-cordero-espresso px-5 py-2 text-sm font-medium text-cordero-cream"
+            className="mt-6 w-full rounded-full bg-cordero-espresso px-5 py-2 text-sm font-medium text-cordero-cream disabled:opacity-50"
             type="submit"
+            disabled={isSubmitting}
           >
-            {COPY.auth.newPasswordButton}
+            {isSubmitting ? "Procesando..." : COPY.auth.newPasswordButton}
           </button>
         </form>
       ) : null}
