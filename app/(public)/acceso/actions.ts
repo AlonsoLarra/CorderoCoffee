@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { env } from "@/lib/config/env";
 import { checkRateLimit } from "@/lib/rate-limit";
 import {
-  sendConfirmationLinkRequestedEmail,
   sendPasswordResetRequestedEmail,
   sendWelcomePendingConfirmationEmail,
 } from "@/lib/services/account-emails";
@@ -16,8 +15,8 @@ import {
 } from "@/lib/supabase/email-verification";
 import {
   createEmailVerificationToken,
-  getVerificationLink,
 } from "@/lib/supabase/email-tokens";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 
@@ -193,40 +192,32 @@ export async function forgotPasswordAction(formData: FormData): Promise<void> {
   }
 
   const supabase = createSupabaseServerClient();
+  const supabaseAdmin = createSupabaseAdminClient();
   const appBaseUrl = getAppBaseUrl();
 
-  // Check if user exists with this email
-  const { data: authUser, error: authError } = await supabase.auth.admin.getUserByEmail(email).catch(() => ({
-    data: null,
-    error: new Error("User lookup failed"),
-  }));
-
-  // Create verification token (works even if user doesn't exist, for security)
-  const tokenData = await createEmailVerificationToken({
-    userId: authUser?.user?.id,
-    email,
-    tokenType: "password_reset",
-  });
-
-  if (tokenData) {
-    // Send email via Resend with reset link (PRIMARY)
-    void sendPasswordResetRequestedEmail({
-      toEmail: email,
-      appBaseUrl,
-      verificationToken: tokenData.token,
-    });
-  }
-
-  // Also trigger Supabase reset (user gets two emails but Resend is the main one)
-  if (authUser?.user?.id) {
-    void supabase.auth.admin.generateLink({
+  // Preferred: generate recovery link and send via Resend.
+  const { data: generatedLink } = await supabaseAdmin.auth.admin
+    .generateLink({
       type: "recovery",
       email,
       options: {
         redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
       },
-    }).catch(() => {
-      // Silently fail if Supabase reset link generation fails
+    })
+    .catch(() => ({ data: null }));
+
+  const recoveryLink = generatedLink?.properties?.action_link;
+
+  if (recoveryLink) {
+    void sendPasswordResetRequestedEmail({
+      toEmail: email,
+      appBaseUrl,
+      actionLink: recoveryLink,
+    });
+  } else {
+    // Fallback to Supabase native delivery when admin link isn't available.
+    void supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
     });
   }
 
@@ -278,28 +269,7 @@ export async function resendConfirmationAction(formData: FormData): Promise<void
   const appBaseUrl = getAppBaseUrl();
   const supabase = createSupabaseServerClient();
 
-  // Check if user exists
-  const { data: authUser } = await supabase.auth.admin
-    .getUserByEmail(email)
-    .catch(() => ({ data: null }));
-
-  // Create a new verification token
-  const tokenData = await createEmailVerificationToken({
-    userId: authUser?.user?.id,
-    email,
-    tokenType: "signup_verification",
-  });
-
-  if (tokenData) {
-    // Send email via Resend with verification link (PRIMARY)
-    void sendConfirmationLinkRequestedEmail({
-      toEmail: email,
-      appBaseUrl,
-      verificationToken: tokenData.token,
-    });
-  }
-
-  // Also attempt Supabase resend as fallback
+  // Use Supabase resend as canonical re-verification flow.
   void supabase.auth
     .resend({
       type: "signup",

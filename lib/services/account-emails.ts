@@ -7,7 +7,8 @@ type AccountEmailPayload = {
 };
 
 type AccountEmailWithTokenPayload = AccountEmailPayload & {
-  verificationToken: string;
+  verificationToken?: string;
+  actionLink?: string;
 };
 
 async function sendAccountEmail(params: {
@@ -106,8 +107,9 @@ export async function sendPasswordResetRequestedEmail({
   toEmail,
   appBaseUrl,
   verificationToken,
+  actionLink,
 }: AccountEmailWithTokenPayload): Promise<void> {
-  const resetUrl = `${appBaseUrl}/acceso/nueva-contrasena?token=${verificationToken}`;
+  const resetUrl = actionLink ?? `${appBaseUrl}/acceso/nueva-contrasena?token=${verificationToken ?? ""}`;
   
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

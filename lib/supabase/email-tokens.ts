@@ -1,5 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { User } from "@supabase/supabase-js";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 const TOKEN_LENGTH = 32;
 const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
@@ -27,7 +26,7 @@ export async function createEmailVerificationToken(params: {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + TOKEN_EXPIRY_MS);
 
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { error } = await supabase.from("email_verification_tokens").insert({
     user_id: params.userId || null,
@@ -52,7 +51,7 @@ export async function verifyEmailToken(params: {
   token: string;
   tokenType: "signup_verification" | "password_reset";
 }): Promise<{ email: string; userId: string | null } | null> {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   const { data, error } = await supabase
     .from("email_verification_tokens")
@@ -105,7 +104,7 @@ export function getVerificationLink(params: {
  * Clean up expired tokens (can be called periodically)
  */
 export async function cleanupExpiredTokens(): Promise<void> {
-  const supabase = createSupabaseServerClient();
+  const supabase = createSupabaseAdminClient();
 
   await supabase
     .from("email_verification_tokens")
