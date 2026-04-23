@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import {
+  getEmailVerificationErrorMessage,
+  isEmailVerified,
+} from "@/lib/supabase/email-verification";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { env } from "@/lib/config/env";
 
@@ -40,6 +44,14 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseServerClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user && !isEmailVerified(user)) {
+    return NextResponse.json({ error: getEmailVerificationErrorMessage() }, { status: 403 });
+  }
 
   // Fetch the order
   const { data: orderData, error: orderError } = await supabase

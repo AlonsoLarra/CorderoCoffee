@@ -10,6 +10,10 @@ import {
   sendPasswordResetRequestedEmail,
   sendWelcomePendingConfirmationEmail,
 } from "@/lib/services/account-emails";
+import {
+  getEmailVerificationErrorMessage,
+  isEmailVerified,
+} from "@/lib/supabase/email-verification";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 
@@ -89,6 +93,10 @@ export async function signInAction(formData: FormData): Promise<void> {
       toAccessError("Tu correo aún no está confirmado. Revisa tu bandeja de entrada.");
     }
     toAccessError("Correo o contraseña incorrectos.");
+  }
+
+  if (authData?.user && !isEmailVerified(authData.user)) {
+    toAccessError(getEmailVerificationErrorMessage());
   }
 
   const role = authData?.user ? await getUserRole(authData.user.id) : null;

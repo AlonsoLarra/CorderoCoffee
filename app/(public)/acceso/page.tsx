@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { resendConfirmationAction, signInAction } from "@/app/(public)/acceso/actions";
 import { COPY } from "@/lib/copy";
+import { isEmailVerified } from "@/lib/supabase/email-verification";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type AccessPageProps = {
@@ -23,7 +24,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
 
   // Keep the access page reachable from the public login CTA.
   // Only force a redirect when an explicit target was requested.
-  if (user && redirectTo) {
+  if (user && redirectTo && isEmailVerified(user)) {
     redirect(redirectTo);
   }
   const errorMessage = searchParams?.error;

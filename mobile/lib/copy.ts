@@ -20,6 +20,7 @@ export const COPY = {
     registerButton: 'Crear cuenta',
     successRegister: 'Cuenta creada. Revisa tu correo para confirmar el acceso.',
     errorInvalidCredentials: 'No pudimos iniciar sesión con esos datos.',
+    errorEmailNotVerified: 'Tu correo aun no esta verificado. Revisa tu bandeja y confirma tu cuenta antes de continuar.',
     errorGeneric: 'Ocurrió un error. Intenta de nuevo.',
     errorMissingFields: 'Completa tu correo y contraseña para continuar.',
     loggedInPrefix: 'Sesión activa como',
