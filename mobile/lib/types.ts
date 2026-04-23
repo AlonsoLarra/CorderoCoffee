@@ -1,4 +1,4 @@
-export type Role = 'guest' | 'customer' | 'admin' | 'super_admin';
+export type Role = 'guest' | 'customer' | 'employee' | 'admin' | 'super_admin';
 
 export type OrderStatus =
   | 'pendiente'

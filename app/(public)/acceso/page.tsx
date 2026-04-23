@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { signInAction } from "@/app/(public)/acceso/actions";
+import { resendConfirmationAction, signInAction } from "@/app/(public)/acceso/actions";
 import { COPY } from "@/lib/copy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -35,7 +35,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
         Cordero Coffee Club
       </span>
 
-      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">{COPY.auth.loginButton}</h1>
+      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">{COPY.auth.title}</h1>
       <p className="mt-3 text-cordero-espresso opacity-80">{COPY.auth.subtitle}</p>
 
       {errorMessage ? (
@@ -52,6 +52,7 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
 
       <form action={signInAction} className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
         {redirectTo ? <input type="hidden" name="redirectTo" value={redirectTo} /> : null}
+        <h2 className="text-lg font-semibold text-cordero-espresso">{COPY.auth.loginButton}</h2>
         <label className="block text-sm" htmlFor="email">
           {COPY.auth.emailLabel}
         </label>
@@ -88,14 +89,41 @@ export default async function AccessPage({ searchParams }: AccessPageProps) {
         </button>
       </form>
 
-      <div className="mt-6 flex flex-wrap gap-4">
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold text-cordero-espresso">{COPY.auth.registerButton}</h2>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-4">
         <Link
           className="rounded-full bg-cordero-espresso/10 px-5 py-2 text-sm font-medium text-cordero-espresso"
           href="/acceso/registro"
+          role="button"
         >
           {COPY.auth.noAccount} {COPY.auth.registerButton}
         </Link>
       </div>
+
+      <form action={resendConfirmationAction} className="mt-6 rounded-2xl border border-cordero bg-cordero-card p-4">
+        <p className="text-sm text-cordero-espresso opacity-80">{COPY.auth.resendConfirmationHint}</p>
+        <label className="mt-3 block text-sm" htmlFor="resend-email">
+          {COPY.auth.emailLabel}
+        </label>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+          <input
+            className="w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cordero-espresso/30"
+            id="resend-email"
+            name="email"
+            type="email"
+            required
+          />
+          <button
+            className="rounded-full bg-cordero-espresso px-4 py-2 text-sm font-medium text-cordero-cream"
+            type="submit"
+          >
+            {COPY.auth.resendConfirmationButton}
+          </button>
+        </div>
+      </form>
 
       <div className="mt-4 flex flex-wrap gap-4">
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/pedido">

@@ -106,6 +106,29 @@ export default async function PublicHomePage() {
         </div>
       </section>
 
+      <section className="px-6 pb-20 sm:px-14 sm:pb-24">
+        <div className="mx-auto max-w-5xl rounded-3xl border border-cordero bg-cordero-card p-8 sm:p-10">
+          <h2 className="font-heading text-2xl text-cordero-espresso sm:text-3xl">Cómo funciona</h2>
+          <div className="mt-8 grid gap-6 sm:grid-cols-3">
+            <article className="rounded-2xl border border-cordero bg-cordero-cream/40 p-5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-cordero-espresso/60">Paso 1</p>
+              <h3 className="mt-2 text-lg font-semibold text-cordero-espresso">Elige en línea</h3>
+              <p className="mt-2 text-sm text-cordero-espresso/75">Explora el menu y agrega tus bebidas al carrito.</p>
+            </article>
+            <article className="rounded-2xl border border-cordero bg-cordero-cream/40 p-5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-cordero-espresso/60">Paso 2</p>
+              <h3 className="mt-2 text-lg font-semibold text-cordero-espresso">Elige tu momento</h3>
+              <p className="mt-2 text-sm text-cordero-espresso/75">Selecciona para ahora o agenda una hora de recolección.</p>
+            </article>
+            <article className="rounded-2xl border border-cordero bg-cordero-cream/40 p-5">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-cordero-espresso/60">Paso 3</p>
+              <h3 className="mt-2 text-lg font-semibold text-cordero-espresso">Llega y recoge</h3>
+              <p className="mt-2 text-sm text-cordero-espresso/75">Recibe notificaciones y pasa por tu cafe sin esperar.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ─────────────────────────────────────────────── */}
       <footer
         className="bg-cordero-espresso px-8 py-10 sm:px-14"

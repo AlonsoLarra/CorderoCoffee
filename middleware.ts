@@ -5,7 +5,10 @@ import { getPublicEnv } from "@/lib/config/env";
 import type { Database } from "@/lib/types/database";
 
 function redirectToHome(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
+  const accessUrl = new URL("/acceso", request.url);
+  const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  accessUrl.searchParams.set("redirectTo", nextPath);
+  return NextResponse.redirect(accessUrl);
 }
 
 export async function middleware(request: NextRequest) {

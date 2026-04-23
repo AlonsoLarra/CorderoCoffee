@@ -59,6 +59,18 @@ export default function RegistroPage({ searchParams }: RegistroPageProps) {
           required
         />
 
+        <label className="mt-4 block text-sm" htmlFor="confirmPassword">
+          {COPY.auth.confirmPasswordLabel}
+        </label>
+        <input
+          className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-cordero-espresso/30"
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          minLength={8}
+          required
+        />
+
         <button
           className="mt-6 w-full rounded-full bg-cordero-espresso px-5 py-2 text-sm font-medium text-cordero-cream"
           type="submit"

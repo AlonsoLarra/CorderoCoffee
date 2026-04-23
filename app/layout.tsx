@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Lora, Work_Sans } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@vercel/analytics/react";
 
 import { OfflineSyncBanner } from "@/components/offline-sync-banner";
 import { ToastProvider } from "@/components/ui/toast-provider";

@@ -89,7 +89,7 @@ export function LoginBanner({ userEmail, profileName, rewardPoints }: LoginBanne
     <div className="sticky top-0 z-40 w-full bg-cordero-espresso px-6 py-3 text-center text-sm sm:px-10">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-3">
         <span className="text-[11px] uppercase tracking-[0.18em] text-cordero-cream opacity-75">
-          Inicia sesión para guardar tu historial y ganar puntos
+          Modo invitado: inicia sesión para guardar tu historial y ganar puntos
         </span>
         <Link
           href="/acceso"

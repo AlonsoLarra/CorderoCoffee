@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { useToast } from "@/components/ui/toast-provider";
@@ -20,6 +20,7 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isShiftOpen, setIsShiftOpen] = useState<boolean | null>(null);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card_pending">("cash");
   const [notes, setNotes] = useState("");
@@ -30,6 +31,22 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
   const total = useMemo(() => {
     return activeItems.reduce((sum, item) => sum + (quantities[item.id] ?? 0) * Number(item.price), 0);
   }, [activeItems, quantities]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/admin/shifts/active", { cache: "no-store" });
+        if (!res.ok) {
+          setIsShiftOpen(false);
+          return;
+        }
+        const body = (await res.json()) as { shift?: { id: string } | null };
+        setIsShiftOpen(Boolean(body.shift));
+      } catch {
+        setIsShiftOpen(false);
+      }
+    })();
+  }, []);
 
   function changeQuantity(itemId: string, delta: number) {
     setQuantities((current) => {
@@ -49,6 +66,13 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
 
     if (lines.length === 0) {
       const warning = "Agrega al menos un producto para crear el pedido walk-in.";
+      setMessage(warning);
+      showToast(warning, "error");
+      return;
+    }
+
+    if (!isShiftOpen) {
+      const warning = "No hay un turno abierto. Abre un turno antes de crear pedidos.";
       setMessage(warning);
       showToast(warning, "error");
       return;
@@ -112,6 +136,12 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
         ))}
       </ul>
 
+      {isShiftOpen === false ? (
+        <p className="mt-3 rounded-xl border border-cordero px-3 py-2 text-sm text-cordero-espresso opacity-80">
+          No hay un turno abierto. Ve a la pestaña Caja y abre un turno para continuar.
+        </p>
+      ) : null}
+
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <select
           className="rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
@@ -133,7 +163,7 @@ export function WalkinOrderForm({ items }: WalkinOrderFormProps) {
         <span className="text-sm font-medium">Total estimado: ${total}</span>
         <button
           className="rounded-full bg-cordero-espresso px-4 py-2 text-xs text-cordero-cream disabled:opacity-50"
-          disabled={isPending}
+          disabled={isPending || isShiftOpen === false}
           onClick={createWalkinOrder}
           type="button"
         >

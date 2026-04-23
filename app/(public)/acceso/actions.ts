@@ -1,7 +1,15 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { env } from "@/lib/config/env";
+import { checkRateLimit } from "@/lib/rate-limit";
+import {
+  sendConfirmationLinkRequestedEmail,
+  sendPasswordResetRequestedEmail,
+  sendWelcomePendingConfirmationEmail,
+} from "@/lib/services/account-emails";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 
@@ -11,6 +19,36 @@ function getStringValue(value: FormDataEntryValue | null): string {
   }
 
   return value.trim();
+}
+
+function getSafeRedirectPath(value: string): string {
+  if (!value) return "";
+  if (!value.startsWith("/")) return "";
+  // Prevent external/protocol-relative URLs.
+  if (value.startsWith("//")) return "";
+  return value;
+}
+
+function getRequestFingerprint(): string {
+  const headersList = headers();
+  const forwarded = headersList.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const realIp = headersList.get("x-real-ip")?.trim();
+  const userAgent = headersList.get("user-agent")?.trim() ?? "unknown-ua";
+  return `${forwarded ?? realIp ?? "unknown-ip"}:${userAgent}`;
+}
+
+function getAppBaseUrl(): string {
+  const raw = (env.APP_URL || "").trim();
+  if (!raw) {
+    return "http://localhost:3000";
+  }
+
+  try {
+    const parsed = new URL(raw);
+    return parsed.origin;
+  } catch {
+    return "http://localhost:3000";
+  }
 }
 
 function toAccessError(message: string): never {
@@ -32,17 +70,25 @@ function toNuevaContrasenaError(message: string): never {
 export async function signInAction(formData: FormData): Promise<void> {
   const email = getStringValue(formData.get("email"));
   const password = getStringValue(formData.get("password"));
-  const redirectTo = getStringValue(formData.get("redirectTo"));
+  const redirectTo = getSafeRedirectPath(getStringValue(formData.get("redirectTo")));
 
   if (!email || !password) {
     toAccessError("Completa tu correo y contraseña para continuar.");
+  }
+
+  const signInRate = checkRateLimit(`signin:${getRequestFingerprint()}`, 12, 60_000);
+  if (!signInRate.allowed) {
+    toAccessError("Demasiados intentos de acceso. Intenta de nuevo en un minuto.");
   }
 
   const supabase = createSupabaseServerClient();
   const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    toAccessError("No pudimos iniciar sesión con esos datos.");
+    if (error.message.toLowerCase().includes("email not confirmed")) {
+      toAccessError("Tu correo aún no está confirmado. Revisa tu bandeja de entrada.");
+    }
+    toAccessError("Correo o contraseña incorrectos.");
   }
 
   const role = authData?.user ? await getUserRole(authData.user.id) : null;
@@ -55,20 +101,50 @@ export async function signInAction(formData: FormData): Promise<void> {
 export async function signUpAction(formData: FormData): Promise<void> {
   const email = getStringValue(formData.get("email"));
   const password = getStringValue(formData.get("password"));
+  const confirmPassword = getStringValue(formData.get("confirmPassword"));
 
   if (!email || !password) {
     toRegistroError("Completa tu correo y contraseña para continuar.");
   }
 
+  if (password.length < 8) {
+    toRegistroError("La contraseña debe tener al menos 8 caracteres.");
+  }
+
+  if (password !== confirmPassword) {
+    toRegistroError("Las contraseñas no coinciden.");
+  }
+
+  const signUpRate = checkRateLimit(`signup:${getRequestFingerprint()}`, 5, 15 * 60_000);
+  if (!signUpRate.allowed) {
+    toRegistroError("Demasiados intentos de registro. Intenta de nuevo en unos minutos.");
+  }
+
   const supabase = createSupabaseServerClient();
+  const appBaseUrl = getAppBaseUrl();
   const { error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      emailRedirectTo: `${appBaseUrl}/acceso`,
+    },
   });
 
   if (error) {
-    toRegistroError("Ocurrió un error. Intenta de nuevo.");
+    const msg = error.message.toLowerCase();
+    if (msg.includes("already registered") || msg.includes("already been registered")) {
+      toRegistroError("Ese correo ya está registrado. Inicia sesión o recupera tu contraseña.");
+    }
+    if (msg.includes("password")) {
+      toRegistroError("La contraseña no cumple con los requisitos de seguridad.");
+    }
+    toRegistroError("No pudimos crear tu cuenta en este momento.");
   }
+
+  void sendWelcomePendingConfirmationEmail({
+    toEmail: email,
+    appBaseUrl,
+  });
 
   redirect(`/acceso?success=${encodeURIComponent("Cuenta creada. Revisa tu correo para confirmar tu acceso.")}`);
 }
@@ -86,14 +162,25 @@ export async function forgotPasswordAction(formData: FormData): Promise<void> {
     toRecuperarError("Ingresa tu correo para continuar.");
   }
 
+  const forgotRate = checkRateLimit(`forgot:${getRequestFingerprint()}`, 4, 15 * 60_000);
+  if (!forgotRate.allowed) {
+    toRecuperarError("Ya hiciste varios intentos. Espera unos minutos para volver a solicitar el enlace.");
+  }
+
   const supabase = createSupabaseServerClient();
+  const appBaseUrl = getAppBaseUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/acceso/nueva-contrasena`,
+    redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
   });
 
   if (error) {
-    toRecuperarError("Ocurrió un error. Intenta de nuevo.");
+    toRecuperarError("No pudimos enviar el enlace por ahora. Intenta de nuevo en unos minutos.");
   }
+
+  void sendPasswordResetRequestedEmail({
+    toEmail: email,
+    appBaseUrl,
+  });
 
   redirect(
     `/acceso/recuperar?success=${encodeURIComponent(
@@ -126,4 +213,38 @@ export async function resetPasswordAction(formData: FormData): Promise<void> {
   }
 
   redirect(`/acceso?success=${encodeURIComponent("Tu contraseña fue actualizada. Ya puedes iniciar sesión.")}`);
+}
+
+export async function resendConfirmationAction(formData: FormData): Promise<void> {
+  const email = getStringValue(formData.get("email"));
+
+  if (!email) {
+    toAccessError("Ingresa tu correo para reenviar la confirmación.");
+  }
+
+  const resendRate = checkRateLimit(`resend-confirmation:${getRequestFingerprint()}`, 4, 15 * 60_000);
+  if (!resendRate.allowed) {
+    toAccessError("Ya solicitaste varios reenvíos. Intenta de nuevo en unos minutos.");
+  }
+
+  const appBaseUrl = getAppBaseUrl();
+  const supabase = createSupabaseServerClient();
+  await supabase.auth.resend({
+    type: "signup",
+    email,
+    options: {
+      emailRedirectTo: `${appBaseUrl}/acceso`,
+    },
+  });
+
+  void sendConfirmationLinkRequestedEmail({
+    toEmail: email,
+    appBaseUrl,
+  });
+
+  redirect(
+    `/acceso?success=${encodeURIComponent(
+      "Si existe una cuenta pendiente de confirmar, te enviamos un nuevo enlace de verificación.",
+    )}`,
+  );
 }
