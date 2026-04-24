@@ -2,11 +2,25 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { COPY } from "@/lib/copy";
 
-export default function VerificarEmailPage() {
+function VerificarEmailFallback() {
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-md px-6 py-8 sm:px-10 sm:py-14">
+      <span className="rounded-full border border-cordero bg-cordero-card px-4 py-1 text-xs uppercase tracking-[0.2em] text-cordero-espresso opacity-80">
+        Cordero Coffee Club
+      </span>
+      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">Verificando tu correo...</h1>
+      <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6" role="status">
+        <p className="text-sm text-cordero-espresso opacity-70">Cargando estado de verificación...</p>
+      </div>
+    </main>
+  );
+}
+
+function VerificarEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -116,5 +130,13 @@ export default function VerificarEmailPage() {
         </div>
       ) : null}
     </main>
+  );
+}
+
+export default function VerificarEmailPage() {
+  return (
+    <Suspense fallback={<VerificarEmailFallback />}>
+      <VerificarEmailContent />
+    </Suspense>
   );
 }

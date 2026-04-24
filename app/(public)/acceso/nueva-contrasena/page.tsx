@@ -2,12 +2,26 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { COPY } from "@/lib/copy";
 
-export default function NuevaContrasenaPage() {
+function NuevaContrasenaFallback() {
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-md px-6 py-8 sm:px-10 sm:py-14">
+      <span className="rounded-full border border-cordero bg-cordero-card px-4 py-1 text-xs uppercase tracking-[0.2em] text-cordero-espresso opacity-80">
+        Cordero Coffee Club
+      </span>
+      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">{COPY.auth.newPasswordTitle}</h1>
+      <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6" role="status">
+        <p className="text-sm text-cordero-espresso opacity-70">Verificando enlace...</p>
+      </div>
+    </main>
+  );
+}
+
+function NuevaContrasenaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -173,5 +187,13 @@ export default function NuevaContrasenaPage() {
         </Link>
       </div>
     </main>
+  );
+}
+
+export default function NuevaContrasenaPage() {
+  return (
+    <Suspense fallback={<NuevaContrasenaFallback />}>
+      <NuevaContrasenaContent />
+    </Suspense>
   );
 }
