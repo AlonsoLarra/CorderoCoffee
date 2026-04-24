@@ -27,7 +27,8 @@ export function OfflineSyncBanner() {
     if ("serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production" && !isLocalhost) {
         navigator.serviceWorker
-          .register("/sw.js")
+          .register("/sw.js", { updateViaCache: "none" })
+          .then((registration) => registration.update())
           .catch(() => {});
       } else {
         // Avoid stale chunk caching while developing locally.
