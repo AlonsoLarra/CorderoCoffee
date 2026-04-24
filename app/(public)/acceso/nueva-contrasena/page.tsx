@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { COPY } from "@/lib/copy";
 
 function NuevaContrasenaFallback() {
@@ -25,34 +24,21 @@ function NuevaContrasenaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
+  const initialError = searchParams.get("error");
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [success, setSuccess] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [flowType, setFlowType] = useState<"custom" | "supabase" | null>(null);
 
   useEffect(() => {
-    // Check if we have a custom token or if Supabase is handling it
     if (token) {
-      setFlowType("custom");
       setIsReady(true);
     } else {
-      // Supabase places auth tokens in the URL hash after the password reset link is clicked.
-      const supabase = createSupabaseBrowserClient();
-
-      const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-        if (event === "PASSWORD_RECOVERY") {
-          setFlowType("supabase");
-          setIsReady(true);
-        }
-      });
-
-      return () => {
-        listener.subscription.unsubscribe();
-      };
+      setError(initialError ?? "El enlace para restablecer tu contraseña no es válido o ya expiró.");
+      setIsReady(false);
     }
-  }, [token]);
+  }, [initialError, token]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,37 +62,27 @@ function NuevaContrasenaContent() {
     }
 
     try {
-      if (flowType === "custom" && token) {
-        // Use custom token endpoint
-        const response = await fetch("/api/auth/reset-password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, password }),
-        });
-
-        if (!response.ok) {
-          const data = (await response.json()) as { error?: string };
-          setError(data.error || COPY.auth.errorGeneric);
-          setIsSubmitting(false);
-          return;
-        }
-
-        setSuccess(true);
-        setTimeout(() => router.push("/acceso"), 3000);
-      } else if (flowType === "supabase") {
-        // Use Supabase's built-in update
-        const supabase = createSupabaseBrowserClient();
-        const { error: updateError } = await supabase.auth.updateUser({ password });
-
-        if (updateError) {
-          setError(COPY.auth.errorGeneric);
-          setIsSubmitting(false);
-          return;
-        }
-
-        setSuccess(true);
-        setTimeout(() => router.push("/acceso"), 3000);
+      if (!token) {
+        setError("El enlace para restablecer tu contraseña no es válido o ya expiró.");
+        setIsSubmitting(false);
+        return;
       }
+
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        setError(data.error || COPY.auth.errorGeneric);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => router.push("/acceso"), 3000);
     } catch (err) {
       console.error("Password reset error:", err);
       setError(COPY.auth.errorGeneric);
@@ -126,13 +102,19 @@ function NuevaContrasenaContent() {
       <p className="mt-3 text-cordero-espresso opacity-80">{COPY.auth.newPasswordSubtitle}</p>
 
       {error ? (
-        <p className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso">
+        <p
+          className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
 
       {success ? (
-        <p className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso">
+        <p
+          className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso"
+          role="status"
+        >
           {COPY.auth.newPasswordSuccess}
         </p>
       ) : null}
@@ -147,6 +129,7 @@ function NuevaContrasenaContent() {
             id="password"
             name="password"
             type="password"
+            autoComplete="new-password"
             minLength={8}
             required
             disabled={isSubmitting}
@@ -160,6 +143,7 @@ function NuevaContrasenaContent() {
             id="confirmPassword"
             name="confirmPassword"
             type="password"
+            autoComplete="new-password"
             minLength={8}
             required
             disabled={isSubmitting}
@@ -175,9 +159,9 @@ function NuevaContrasenaContent() {
         </form>
       ) : null}
 
-      {!success && !isReady ? (
+      {!success && !isReady && !error ? (
         <p className="mt-8 text-sm text-cordero-espresso opacity-60">
-          Verificando enlace...
+          {error ?? "Verificando enlace..."}
         </p>
       ) : null}
 
@@ -185,6 +169,11 @@ function NuevaContrasenaContent() {
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso">
           {COPY.auth.loginButton}
         </Link>
+        {!success && error ? (
+          <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso/recuperar">
+            Solicitar otro enlace
+          </Link>
+        ) : null}
       </div>
     </main>
   );

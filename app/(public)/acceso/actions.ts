@@ -191,34 +191,48 @@ export async function forgotPasswordAction(formData: FormData): Promise<void> {
     toRecuperarError("Ya hiciste varios intentos. Espera unos minutos para volver a solicitar el enlace.");
   }
 
-  const supabase = createSupabaseServerClient();
   const supabaseAdmin = createSupabaseAdminClient();
   const appBaseUrl = getAppBaseUrl();
 
-  // Preferred: generate recovery link and send via Resend.
-  const { data: generatedLink } = await supabaseAdmin.auth.admin
-    .generateLink({
-      type: "recovery",
+  const normalizedEmail = email.toLowerCase();
+  let matchedUserId: string | undefined;
+  let page = 1;
+
+  while (!matchedUserId) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) {
+      console.error("Failed to list users for password reset:", error);
+      break;
+    }
+
+    const users = data.users ?? [];
+    const matchedUser = users.find((user) => user.email?.toLowerCase() === normalizedEmail);
+    if (matchedUser) {
+      matchedUserId = matchedUser.id;
+      break;
+    }
+
+    if (users.length < 200) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  if (matchedUserId) {
+    const tokenData = await createEmailVerificationToken({
+      userId: matchedUserId,
       email,
-      options: {
-        redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
-      },
-    })
-    .catch(() => ({ data: null }));
+      tokenType: "password_reset",
+    });
 
-  const recoveryLink = generatedLink?.properties?.action_link;
-
-  if (recoveryLink) {
+    if (tokenData) {
     void sendPasswordResetRequestedEmail({
       toEmail: email,
       appBaseUrl,
-      actionLink: recoveryLink,
+        verificationToken: tokenData.token,
     });
-  } else {
-    // Fallback to Supabase native delivery when admin link isn't available.
-    void supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${appBaseUrl}/acceso/nueva-contrasena`,
-    });
+    }
   }
 
   redirect(

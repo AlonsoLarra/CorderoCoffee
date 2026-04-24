@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { verifyEmailToken } from "@/lib/supabase/email-tokens";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -25,12 +25,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Get Supabase client
-    const supabase = createSupabaseServerClient();
+    const supabaseAdmin = createSupabaseAdminClient();
 
     // If there's a user_id, update their confirmation status
     if (tokenData.userId) {
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
         tokenData.userId,
         {
           email_confirm: true,
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
 
       // Also set email_verified in metadata for additional safety
-      await supabase.auth.admin.updateUserById(tokenData.userId, {
+      await supabaseAdmin.auth.admin.updateUserById(tokenData.userId, {
         user_metadata: {
           email_verified: true,
         },

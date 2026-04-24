@@ -1,18 +1,15 @@
+import { randomBytes } from "node:crypto";
+
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-const TOKEN_LENGTH = 32;
+const TOKEN_BYTES = 32;
 const TOKEN_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
  * Generate a random token for email verification
  */
 function generateToken(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let token = "";
-  for (let i = 0; i < TOKEN_LENGTH; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  return randomBytes(TOKEN_BYTES).toString("base64url");
 }
 
 /**
@@ -52,35 +49,22 @@ export async function verifyEmailToken(params: {
   tokenType: "signup_verification" | "password_reset";
 }): Promise<{ email: string; userId: string | null } | null> {
   const supabase = createSupabaseAdminClient();
+  const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("email_verification_tokens")
-    .select("email, user_id, expires_at, used")
+    .update({ used: true, updated_at: now })
+    .select("email, user_id")
     .eq("token", params.token)
     .eq("token_type", params.tokenType)
+    .eq("used", false)
+    .gt("expires_at", now)
     .maybeSingle();
 
   if (error || !data) {
     console.error("Failed to verify email token:", error);
     return null;
   }
-
-  if (data.used) {
-    console.warn("Email token already used:", params.token);
-    return null;
-  }
-
-  const expiresAt = new Date(data.expires_at);
-  if (expiresAt < new Date()) {
-    console.warn("Email token expired:", params.token);
-    return null;
-  }
-
-  // Mark token as used
-  await supabase
-    .from("email_verification_tokens")
-    .update({ used: true, updated_at: new Date().toISOString() })
-    .eq("token", params.token);
 
   return {
     email: data.email,
