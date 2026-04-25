@@ -83,7 +83,7 @@ export async function signInAction(formData: FormData): Promise<void> {
     toAccessError("Completa tu correo y contraseña para continuar.");
   }
 
-  const signInRate = checkRateLimit(`signin:${getRequestFingerprint()}`, 12, 60_000);
+  const signInRate = await checkRateLimit(`signin:${getRequestFingerprint()}`, 12, 60_000);
   if (!signInRate.allowed) {
     toAccessError("Demasiados intentos de acceso. Intenta de nuevo en un minuto.");
   }
@@ -126,7 +126,7 @@ export async function signUpAction(formData: FormData): Promise<void> {
     toRegistroError("Las contraseñas no coinciden.");
   }
 
-  const signUpRate = checkRateLimit(`signup:${getRequestFingerprint()}`, 5, 15 * 60_000);
+  const signUpRate = await checkRateLimit(`signup:${getRequestFingerprint()}`, 5, 15 * 60_000);
   if (!signUpRate.allowed) {
     toRegistroError("Demasiados intentos de registro. Intenta de nuevo en unos minutos.");
   }
@@ -186,7 +186,7 @@ export async function forgotPasswordAction(formData: FormData): Promise<void> {
     toRecuperarError("Ingresa tu correo para continuar.");
   }
 
-  const forgotRate = checkRateLimit(`forgot:${getRequestFingerprint()}`, 4, 15 * 60_000);
+  const forgotRate = await checkRateLimit(`forgot:${getRequestFingerprint()}`, 4, 15 * 60_000);
   if (!forgotRate.allowed) {
     toRecuperarError("Ya hiciste varios intentos. Espera unos minutos para volver a solicitar el enlace.");
   }
@@ -275,7 +275,7 @@ export async function resendConfirmationAction(formData: FormData): Promise<void
     toAccessError("Ingresa tu correo para reenviar la confirmación.");
   }
 
-  const resendRate = checkRateLimit(`resend-confirmation:${getRequestFingerprint()}`, 4, 15 * 60_000);
+  const resendRate = await checkRateLimit(`resend-confirmation:${getRequestFingerprint()}`, 4, 15 * 60_000);
   if (!resendRate.allowed) {
     toAccessError("Ya solicitaste varios reenvíos. Intenta de nuevo en unos minutos.");
   }

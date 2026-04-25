@@ -40,16 +40,6 @@ export async function POST(request: Request) {
     return auth.error;
   }
 
-  const { data: activeShift } = await auth.supabase
-    .from("shifts")
-    .select("id")
-    .eq("status", "open")
-    .maybeSingle();
-
-  if (!activeShift) {
-    return NextResponse.json({ error: "No hay un turno abierto. Abre un turno antes de crear pedidos." }, { status: 403 });
-  }
-
   let payload: WalkinPayload;
   try {
     payload = (await request.json()) as WalkinPayload;
@@ -74,7 +64,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No hay productos validos." }, { status: 400 });
   }
 
-  // Block if no shift is open
   const { data: activeShift } = await auth.supabase
     .from("shifts")
     .select("id, cash_sales_total, opening_cash, total_cash_drops, orders_since_threshold")
