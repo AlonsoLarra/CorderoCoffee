@@ -13,7 +13,6 @@ VALUES
   ('Café',             5, true),
   ('Non Coffee',       6, true)
 ON CONFLICT DO NOTHING;
-
 DO $$
 DECLARE
   cat_hot         uuid;
@@ -49,7 +48,6 @@ BEGIN
   ON CONFLICT DO NOTHING;
 END;
 $$;
-
 -- 1. Modificadores de tamaño para bebidas con dos precios
 --    (precio base = talla chica, +10 para grande)
 DO $$
@@ -75,7 +73,6 @@ BEGIN
   END IF;
 END;
 $$;
-
 -- 2. Catálogo de insumos
 INSERT INTO public.inventory_items (name, unit, current_stock, minimum_stock)
 VALUES
@@ -98,7 +95,6 @@ VALUES
   ('Algarroba en polvo',   'g',      0, 200),
   ('Extracto de vainilla', 'ml',     0, 100)
 ON CONFLICT DO NOTHING;
-
 -- 3. Recetas: ingredientes por ítem de menú
 DO $$
 DECLARE

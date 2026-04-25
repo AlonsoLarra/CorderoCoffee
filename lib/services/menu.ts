@@ -39,7 +39,7 @@ type RawModifier = {
 
 type RawItem = {
   id: string;
-  category_id: string;
+  category_id: string | null;
   name: string;
   description: string | null;
   price: number;
@@ -77,29 +77,31 @@ export async function getActiveMenu(): Promise<MenuCategoryWithItems[]> {
   const typedCategories = (categories ?? []) as unknown as RawCategory[];
   const typedItems = (items ?? []) as unknown as RawItem[];
 
-  return typedCategories.map((category) => {
-    const categoryItems = typedItems
-      .filter((item) => item.category_id === category.id)
-      .map((item) => ({
-        id: item.id,
-        name: item.name,
-        description: item.description,
-        price: Number(item.price),
-        trackStock: item.track_stock ?? false,
-        stockQuantity: item.stock_quantity ?? null,
-        modifiers: (item.item_modifiers ?? []).map((mod) => ({
-          id: mod.id,
-          name: mod.name,
-          options: mod.options ?? [],
-          isRequired: mod.is_required,
-        })),
-      }));
+  return typedCategories
+    .map((category) => {
+      const categoryItems = typedItems
+        .filter((item) => item.category_id === category.id)
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          price: Number(item.price),
+          trackStock: item.track_stock ?? false,
+          stockQuantity: item.stock_quantity ?? null,
+          modifiers: (item.item_modifiers ?? []).map((mod) => ({
+            id: mod.id,
+            name: mod.name,
+            options: mod.options ?? [],
+            isRequired: mod.is_required,
+          })),
+        }));
 
-    return {
-      id: category.id,
-      name: category.name,
-      sortOrder: category.sort_order,
-      items: categoryItems,
-    };
-  });
+      return {
+        id: category.id,
+        name: category.name,
+        sortOrder: category.sort_order,
+        items: categoryItems,
+      };
+    })
+    .filter((category) => category.items.length > 0);
 }

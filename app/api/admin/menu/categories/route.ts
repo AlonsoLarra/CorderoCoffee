@@ -7,6 +7,23 @@ type CreateCategoryPayload = {
   sortOrder?: number;
 };
 
+function normalizeCategoryName(name: string) {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function getDuplicateCategoryMessage(error: unknown) {
+  const typedError = error as { code?: string; message?: string } | null;
+  if (typedError?.code === "23505") {
+    return "Ya existe una categoría con ese nombre.";
+  }
+
+  if (typedError?.message?.toLowerCase().includes("duplicate")) {
+    return "Ya existe una categoría con ese nombre.";
+  }
+
+  return null;
+}
+
 async function ensureAdmin() {
   const supabase = createSupabaseServerClient();
   const {
@@ -72,7 +89,7 @@ export async function POST(request: Request) {
 
   const { data, error } = (await categoriesTable
     .insert({
-      name: payload.name.trim(),
+      name: normalizeCategoryName(payload.name),
       sort_order: payload.sortOrder ?? 0,
       is_active: true,
     })
@@ -83,6 +100,11 @@ export async function POST(request: Request) {
   };
 
   if (error || !data) {
+    const duplicateMessage = getDuplicateCategoryMessage(error);
+    if (duplicateMessage) {
+      return NextResponse.json({ error: duplicateMessage }, { status: 409 });
+    }
+
     return NextResponse.json({ error: "No pudimos crear la categoria." }, { status: 500 });
   }
 

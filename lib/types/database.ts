@@ -102,7 +102,7 @@ export type Database = {
       menu_items: {
         Row: {
           id: string;
-          category_id: string;
+          category_id: string | null;
           name: string;
           description: string | null;
           price: number;
@@ -117,7 +117,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          category_id: string;
+          category_id?: string | null;
           name: string;
           description?: string | null;
           price: number;
@@ -131,7 +131,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          category_id?: string;
+          category_id?: string | null;
           name?: string;
           description?: string | null;
           price?: number;

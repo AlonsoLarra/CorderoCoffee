@@ -53,24 +53,27 @@ export default function PedidoScreen() {
           .from('menu_items')
           .select('id, name, description, price, image_url, category_id')
           .eq('is_active', true)
+          .not('category_id', 'is', null)
           .order('sort_order');
 
         if (itemsError) throw itemsError;
 
-        const built: MenuCategory[] = cats.map((cat) => ({
-          id: cat.id,
-          name: cat.name,
-          sort_order: cat.sort_order,
-          items: (items ?? [])
-            .filter((item) => item.category_id === cat.id)
-            .map((item) => ({
-              id: item.id,
-              name: item.name,
-              description: item.description,
-              price: item.price,
-              image_url: item.image_url,
-            })),
-        }));
+        const built: MenuCategory[] = cats
+          .map((cat) => ({
+            id: cat.id,
+            name: cat.name,
+            sort_order: cat.sort_order,
+            items: (items ?? [])
+              .filter((item) => item.category_id === cat.id)
+              .map((item) => ({
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                price: item.price,
+                image_url: item.image_url,
+              })),
+          }))
+          .filter((category) => category.items.length > 0);
 
         setCategories(built);
         if (built.length > 0) setSelectedCategory(built[0].id);

@@ -12,6 +12,80 @@ const SUPER_ADMIN_TABS = new Set<AdminTabKey>(["pedidos", "alta", "menu", "inven
 
 export const dynamic = "force-dynamic";
 
+type AdminCategory = {
+  id: string;
+  name: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+};
+
+type AdminMenuItem = {
+  id: string;
+  category_id: string | null;
+  name: string;
+  description: string | null;
+  price: number;
+  is_active: boolean;
+  sort_order: number;
+  track_stock: boolean;
+  stock_quantity: number | null;
+  low_stock_alert: number;
+};
+
+function normalizeCategoryName(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase("es");
+}
+
+function pickPreferredCategory(left: AdminCategory, right: AdminCategory) {
+  if (left.is_active !== right.is_active) {
+    return left.is_active ? left : right;
+  }
+
+  if (left.sort_order !== right.sort_order) {
+    return left.sort_order <= right.sort_order ? left : right;
+  }
+
+  if (left.created_at !== right.created_at) {
+    return left.created_at <= right.created_at ? left : right;
+  }
+
+  return left.id <= right.id ? left : right;
+}
+
+function coalesceMenuCategories(categories: AdminCategory[], items: AdminMenuItem[]) {
+  const canonicalByKey = new Map<string, AdminCategory>();
+  const categoryIdMap = new Map<string, string>();
+
+  for (const category of categories) {
+    const key = normalizeCategoryName(category.name);
+    const existing = canonicalByKey.get(key);
+
+    if (!existing) {
+      canonicalByKey.set(key, category);
+      categoryIdMap.set(category.id, category.id);
+      continue;
+    }
+
+    const preferred = pickPreferredCategory(existing, category);
+    const duplicate = preferred.id === existing.id ? category : existing;
+
+    canonicalByKey.set(key, preferred);
+    categoryIdMap.set(preferred.id, preferred.id);
+    categoryIdMap.set(duplicate.id, preferred.id);
+  }
+
+  return {
+    categories: Array.from(canonicalByKey.values()).sort(
+      (left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name, "es"),
+    ),
+    items: items.map((item) => ({
+      ...item,
+      category_id: item.category_id ? (categoryIdMap.get(item.category_id) ?? item.category_id) : null,
+    })),
+  };
+}
+
 export default async function AdminPage() {
   const supabase = createSupabaseServerClient();
 
@@ -67,7 +141,7 @@ export default async function AdminPage() {
       .gte("updated_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
       .order("updated_at", { ascending: false })
       .limit(50),
-    supabase.from("menu_categories").select("id,name,sort_order,is_active").order("sort_order", { ascending: true }),
+    supabase.from("menu_categories").select("id,name,sort_order,is_active,created_at").order("sort_order", { ascending: true }),
     supabase
       .from("menu_items")
       .select("id,category_id,name,description,price,is_active,sort_order,track_stock,stock_quantity,low_stock_alert")
@@ -118,25 +192,10 @@ export default async function AdminPage() {
     })),
   }));
 
-  const categories = (rawCategories ?? []) as unknown as Array<{
-    id: string;
-    name: string;
-    sort_order: number;
-    is_active: boolean;
-  }>;
+  const categories = (rawCategories ?? []) as unknown as AdminCategory[];
 
-  const items = (rawItems ?? []) as unknown as Array<{
-    id: string;
-    category_id: string;
-    name: string;
-    description: string | null;
-    price: number;
-    is_active: boolean;
-    sort_order: number;
-    track_stock: boolean;
-    stock_quantity: number | null;
-    low_stock_alert: number;
-  }>;
+  const items = (rawItems ?? []) as unknown as AdminMenuItem[];
+  const menuData = coalesceMenuCategories(categories, items);
 
   const inventoryItems = (rawInventoryItems ?? []) as unknown as InventoryItem[];
 
@@ -160,10 +219,10 @@ export default async function AdminPage() {
 
       <AdminTabs
         allowedTabs={allowedTabs}
-        categories={categories}
+        categories={menuData.categories}
         currentRole={currentRole}
         inventoryItems={inventoryItems}
-        items={items.map((item) => ({ ...item, price: Number(item.price) }))}
+        items={menuData.items.map((item) => ({ ...item, price: Number(item.price) }))}
         orders={queueItems}
       />
     </main>

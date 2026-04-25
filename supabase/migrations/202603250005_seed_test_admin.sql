@@ -5,7 +5,6 @@
 -- and remote projects. The UUID is fixed so the migration is idempotent.
 
 create extension if not exists pgcrypto with schema extensions;
-
 do $$
 declare
   v_uid uuid := 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';

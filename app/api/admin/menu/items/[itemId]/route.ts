@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type UpdateItemPayload = {
-  categoryId?: string;
+  categoryId?: string | null;
   name?: string;
   description?: string;
   price?: number;
@@ -45,7 +45,7 @@ export async function PATCH(request: Request, context: { params: { itemId: strin
   }
 
   const updates: Record<string, unknown> = {};
-  if (typeof payload.categoryId === "string") {
+  if (payload.categoryId === null || typeof payload.categoryId === "string") {
     updates.category_id = payload.categoryId;
   }
   if (typeof payload.name === "string") {
@@ -82,7 +82,7 @@ export async function PATCH(request: Request, context: { params: { itemId: strin
     data:
       | {
           id: string;
-          category_id: string;
+          category_id: string | null;
           name: string;
           description: string | null;
           price: number;
