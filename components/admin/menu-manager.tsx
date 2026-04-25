@@ -1219,8 +1219,8 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px,minmax(0,1fr)]">
-        <div className="xl:sticky xl:top-6 xl:self-start">{renderLane(lanes[0])}</div>
+      <div className="space-y-8">
+        {renderLane(lanes[0])}
 
         <div className="space-y-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
