@@ -40,6 +40,16 @@ export async function POST(request: Request) {
     return auth.error;
   }
 
+  const { data: activeShift } = await auth.supabase
+    .from("shifts")
+    .select("id")
+    .eq("status", "open")
+    .maybeSingle();
+
+  if (!activeShift) {
+    return NextResponse.json({ error: "No hay un turno abierto. Abre un turno antes de crear pedidos." }, { status: 403 });
+  }
+
   let payload: WalkinPayload;
   try {
     payload = (await request.json()) as WalkinPayload;

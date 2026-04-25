@@ -41,9 +41,11 @@ export default function AccesoScreen() {
     setLoading(true);
     try {
       if (mode === 'login') {
-        const { error: authError } = await signIn(email, password);
+        const { error: authError, requiresEmailVerification } = await signIn(email, password);
         if (authError) {
           setError(COPY.auth.errorInvalidCredentials);
+        } else if (requiresEmailVerification) {
+          setError(COPY.auth.errorEmailNotVerified);
         } else {
           router.replace('/');
         }

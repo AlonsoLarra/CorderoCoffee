@@ -1,11 +1,15 @@
 // Service Worker for CorderoCoffee offline support
-const CACHE_NAME = "cordero-v1";
+const CACHE_NAME = "cordero-static-v2";
 const STATIC_ASSETS = ["/", "/pedido", "/pedido/carrito"];
 const OFFLINE_QUEUE_KEY = "offline-orders";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS).catch(() => {})),
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        STATIC_ASSETS.map((asset) => cache.add(new Request(asset, { cache: "reload" }))),
+      ).catch(() => {}),
+    ),
   );
   self.skipWaiting();
 });
@@ -47,13 +51,59 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static pages
-  if (event.request.method === "GET" && !url.pathname.startsWith("/api/")) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => cached ?? fetch(event.request)),
-    );
+  // Network-first for navigation avoids stale shells after deploy.
+  if (event.request.mode === "navigate") {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
+
+  // Stale-while-revalidate for same-origin static GET requests.
+  if (
+    event.request.method === "GET" &&
+    url.origin === self.location.origin &&
+    !url.pathname.startsWith("/api/") &&
+    url.pathname !== "/sw.js"
+  ) {
+    event.respondWith(staleWhileRevalidate(event.request));
   }
 });
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE_NAME);
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return cache.match("/") || Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then(async (response) => {
+      if (response.ok) {
+        await cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => undefined);
+
+  if (cached) {
+    return cached;
+  }
+
+  const networkResponse = await networkPromise;
+  return networkResponse || Response.error();
+}
 
 // IndexedDB helpers
 function openDB() {

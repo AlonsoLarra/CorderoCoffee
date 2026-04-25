@@ -11,21 +11,35 @@ export function OfflineSyncBanner() {
   const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
-    // Register service worker
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .catch(() => {});
+    const isLocalhost =
+      typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
-      // Listen for sync results
-      navigator.serviceWorker.addEventListener("message", (event: MessageEvent) => {
-        if (event.data?.type === "SYNC_COMPLETE") {
-          setSyncing(false);
-          const { synced, failed } = event.data as { synced: number; failed: number };
-          setSyncResult({ synced, failed });
-          void refreshCount();
-        }
-      });
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === "SYNC_COMPLETE") {
+        setSyncing(false);
+        const { synced, failed } = event.data as { synced: number; failed: number };
+        setSyncResult({ synced, failed });
+        void refreshCount();
+      }
+    };
+
+    if ("serviceWorker" in navigator) {
+      if (process.env.NODE_ENV === "production" && !isLocalhost) {
+        navigator.serviceWorker
+          .register("/sw.js", { updateViaCache: "none" })
+          .then((registration) => registration.update())
+          .catch(() => {});
+      } else {
+        // Avoid stale chunk caching while developing locally.
+        void navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => {
+            void registration.unregister();
+          });
+        });
+      }
+
+      navigator.serviceWorker.addEventListener("message", handleServiceWorkerMessage);
     }
 
     setIsOnline(navigator.onLine);
@@ -40,6 +54,9 @@ export function OfflineSyncBanner() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.removeEventListener("message", handleServiceWorkerMessage);
+      }
       clearInterval(interval);
     };
   }, []);

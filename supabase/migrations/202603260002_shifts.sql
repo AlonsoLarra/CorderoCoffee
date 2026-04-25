@@ -12,26 +12,21 @@ create table if not exists public.shifts (
   opened_at    timestamptz not null default timezone('utc', now()),
   closed_at    timestamptz
 );
-
 -- Link orders to shifts (nullable — historical orders have no shift)
 alter table public.orders
   add column if not exists shift_id uuid references public.shifts(id) on delete set null;
-
 -- RLS
 alter table public.shifts enable row level security;
-
 drop policy if exists "shifts_staff_read" on public.shifts;
 create policy "shifts_staff_read"
 on public.shifts for select
 to authenticated
 using (public.is_staff(auth.uid()));
-
 drop policy if exists "shifts_admin_write" on public.shifts;
 create policy "shifts_admin_write"
 on public.shifts for all
 to authenticated
 using (public.is_staff(auth.uid()))
 with check (public.is_staff(auth.uid()));
-
 -- Grants
 grant select, insert, update on public.shifts to authenticated;

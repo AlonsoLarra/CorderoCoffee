@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import {
+  getEmailVerificationErrorMessage,
+  isEmailVerified,
+} from "@/lib/supabase/email-verification";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CreateOrderRequest } from "@/lib/types/checkout";
 import type { PaymentMethod, PickupType } from "@/lib/types/domain";
@@ -121,6 +125,10 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (user && !isEmailVerified(user)) {
+    return NextResponse.json({ error: getEmailVerificationErrorMessage() }, { status: 403 });
+  }
 
   const uniqueItemIds = Array.from(new Set(normalizedLines.map((line) => line.itemId)));
 

@@ -6,7 +6,10 @@ interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: AuthError | null; requiresEmailVerification: boolean }>;
   signUp: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
@@ -15,7 +18,7 @@ const AuthContext = createContext<AuthContextValue>({
   user: null,
   session: null,
   loading: true,
-  signIn: async () => ({ error: null }),
+  signIn: async () => ({ error: null, requiresEmailVerification: false }),
   signUp: async () => ({ error: null }),
   signOut: async () => {},
 });
@@ -41,8 +44,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      return { error, requiresEmailVerification: false };
+    }
+
+    const userWithConfirmedAt = data.user as User & {
+      confirmed_at?: string | null;
+    };
+    const emailVerified = Boolean(
+      data.user?.email_confirmed_at ||
+        userWithConfirmedAt.confirmed_at ||
+        data.user?.user_metadata?.email_verified,
+    );
+
+    if (!emailVerified) {
+      await supabase.auth.signOut();
+      return { error: null, requiresEmailVerification: true };
+    }
+
+    return { error: null, requiresEmailVerification: false };
   }
 
   async function signUp(email: string, password: string) {

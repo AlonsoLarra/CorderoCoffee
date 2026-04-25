@@ -1,6 +1,5 @@
 -- Fix 1: Add 'card_online' to the payment_method enum so online card payments work.
 alter type public.payment_method add value if not exists 'card_online';
-
 -- Fix 2: Make log_order_status_change SECURITY DEFINER so the trigger can insert
 -- into order_status_log regardless of the calling user's RLS context.
 -- Without this, every order insert by a non-admin user fails because the trigger

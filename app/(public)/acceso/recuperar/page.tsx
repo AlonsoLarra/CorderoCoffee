@@ -26,13 +26,19 @@ export default function RecuperarPage({ searchParams }: RecuperarPageProps) {
       <p className="mt-3 text-cordero-espresso opacity-80">{COPY.auth.forgotPasswordSubtitle}</p>
 
       {errorMessage ? (
-        <p className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso">
+        <p
+          className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso"
+          role="alert"
+        >
           {errorMessage}
         </p>
       ) : null}
 
       {successMessage ? (
-        <p className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso">
+        <p
+          className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso"
+          role="status"
+        >
           {successMessage}
         </p>
       ) : null}
@@ -63,6 +69,11 @@ export default function RecuperarPage({ searchParams }: RecuperarPageProps) {
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso">
           {COPY.auth.loginButton}
         </Link>
+        {successMessage ? (
+          <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso/recuperar">
+            Usar otro correo
+          </Link>
+        ) : null}
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/">
           {COPY.actions.backToHome}
         </Link>

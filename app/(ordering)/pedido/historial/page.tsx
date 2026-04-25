@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { ReorderButton } from "@/components/ordering/reorder-button";
+import {
+  getEmailVerificationErrorMessage,
+  isEmailVerified,
+} from "@/lib/supabase/email-verification";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { OrderStatus, PaymentMethod, PickupType } from "@/lib/types/domain";
 
@@ -91,6 +96,10 @@ export default async function OrderHistoryPage() {
         </div>
       </main>
     );
+  }
+
+  if (!isEmailVerified(user)) {
+    redirect(`/acceso?error=${encodeURIComponent(getEmailVerificationErrorMessage())}`);
   }
 
   const [{ data: rawOrders }, { data: profileData }] = await Promise.all([

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 type CreateItemPayload = {
-  categoryId: string;
+  categoryId?: string | null;
   name: string;
   description?: string;
   price: number;
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Payload invalido." }, { status: 400 });
   }
 
-  if (!payload?.categoryId || !payload?.name?.trim() || !Number.isFinite(Number(payload.price))) {
+  if (!payload?.name?.trim() || !Number.isFinite(Number(payload.price))) {
     return NextResponse.json({ error: "Datos incompletos para crear producto." }, { status: 400 });
   }
 
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
 
   const { data, error } = (await itemsTable
     .insert({
-      category_id: payload.categoryId,
+      category_id: payload.categoryId ?? null,
       name: payload.name.trim(),
       description: payload.description?.trim() ? payload.description.trim() : null,
       price: Number(payload.price),
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     data:
       | {
           id: string;
-          category_id: string;
+          category_id: string | null;
           name: string;
           description: string | null;
           price: number;

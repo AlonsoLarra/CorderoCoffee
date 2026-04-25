@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 -- Receta: qué ingredientes consume cada ítem de menú y en qué cantidad por unidad pedida
 CREATE TABLE IF NOT EXISTS public.menu_item_ingredients (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -22,20 +21,17 @@ CREATE TABLE IF NOT EXISTS public.menu_item_ingredients (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (menu_item_id, inventory_item_id)
 );
-
 -- Trigger para updated_at en inventory_items
 DROP TRIGGER IF EXISTS trg_inventory_items_updated_at ON public.inventory_items;
 CREATE TRIGGER trg_inventory_items_updated_at
   BEFORE UPDATE ON public.inventory_items
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
-
 -- =====================================================================
 -- Row Level Security
 -- =====================================================================
 
 ALTER TABLE public.inventory_items        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.menu_item_ingredients  ENABLE ROW LEVEL SECURITY;
-
 -- Solo administradores pueden leer y modificar el inventario
 DO $$
 BEGIN
@@ -53,7 +49,6 @@ BEGIN
   END IF;
 END;
 $$;
-
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -70,7 +65,6 @@ BEGIN
   END IF;
 END;
 $$;
-
 -- Service role (usado por el cliente admin) siempre tiene acceso completo
 -- (Supabase lo garantiza por defecto al usar la service role key)
 

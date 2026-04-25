@@ -46,9 +46,10 @@ export function useCart() {
     setHydrated(true);
   }, []);
 
-  useEffect(() => {
-    if (hydrated) saveCartLines(lines);
-  }, [lines, hydrated]);
+  function persist(next: CartLine[]) {
+    setLines(next);
+    if (hydrated) saveCartLines(next);
+  }
 
   const total = useMemo(
     () => lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0),
@@ -65,19 +66,22 @@ export function useCart() {
     modifiers: SelectedModifier[] = [],
   ) {
     setLines((current) => {
+      let next: CartLine[];
       if (modifiers.length === 0) {
         const existing = current.find(
           (l) => l.itemId === item.id && l.modifiers.length === 0,
         );
         if (existing) {
-          return current.map((l) =>
+          next = current.map((l) =>
             l.itemId === item.id && l.modifiers.length === 0
               ? { ...l, quantity: l.quantity + 1 }
               : l,
           );
+          if (hydrated) saveCartLines(next);
+          return next;
         }
       }
-      return [
+      next = [
         ...current,
         {
           itemId: item.id,
@@ -87,20 +91,29 @@ export function useCart() {
           modifiers,
         },
       ];
+      if (hydrated) saveCartLines(next);
+      return next;
     });
   }
 
   function updateQuantity(lineIndex: number, nextQuantity: number) {
     setLines((current) => {
-      if (nextQuantity <= 0) return current.filter((_, i) => i !== lineIndex);
-      return current.map((l, i) =>
+      let next: CartLine[];
+      if (nextQuantity <= 0) {
+        next = current.filter((_, i) => i !== lineIndex);
+        if (hydrated) saveCartLines(next);
+        return next;
+      }
+      next = current.map((l, i) =>
         i === lineIndex ? { ...l, quantity: nextQuantity } : l,
       );
+      if (hydrated) saveCartLines(next);
+      return next;
     });
   }
 
   function clearCart() {
-    setLines([]);
+    persist([]);
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(CART_STORAGE_KEY);
     }

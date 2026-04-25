@@ -8,6 +8,23 @@ type UpdateCategoryPayload = {
   isActive?: boolean;
 };
 
+function normalizeCategoryName(name: string) {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+function getDuplicateCategoryMessage(error: unknown) {
+  const typedError = error as { code?: string; message?: string } | null;
+  if (typedError?.code === "23505") {
+    return "Ya existe una categoría con ese nombre.";
+  }
+
+  if (typedError?.message?.toLowerCase().includes("duplicate")) {
+    return "Ya existe una categoría con ese nombre.";
+  }
+
+  return null;
+}
+
 async function ensureAdmin() {
   const supabase = createSupabaseServerClient();
   const {
@@ -43,7 +60,7 @@ export async function PATCH(request: Request, context: { params: { categoryId: s
 
   const updates: Record<string, unknown> = {};
   if (typeof payload.name === "string") {
-    updates.name = payload.name.trim();
+    updates.name = normalizeCategoryName(payload.name);
   }
   if (typeof payload.sortOrder === "number") {
     updates.sort_order = payload.sortOrder;
@@ -72,6 +89,11 @@ export async function PATCH(request: Request, context: { params: { categoryId: s
   };
 
   if (error || !data) {
+    const duplicateMessage = getDuplicateCategoryMessage(error);
+    if (duplicateMessage) {
+      return NextResponse.json({ error: duplicateMessage }, { status: 409 });
+    }
+
     return NextResponse.json({ error: "No pudimos actualizar la categoria." }, { status: 500 });
   }
 

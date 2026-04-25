@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { LoginBanner } from "@/components/ordering/login-banner";
 import { LocalOrdersPanel } from "@/components/ordering/local-orders-panel";
 import { OrderingShell } from "@/components/ordering/ordering-shell";
 import { COPY } from "@/lib/copy";
 import { getActiveMenu, type MenuCategoryWithItems } from "@/lib/services/menu";
+import {
+  getEmailVerificationErrorMessage,
+  isEmailVerified,
+} from "@/lib/supabase/email-verification";
 import { getUserRole, isAdminRole } from "@/lib/supabase/roles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -26,6 +31,10 @@ export default async function OrderingPage() {
     } = await supabase.auth.getUser();
 
     if (user) {
+      if (!isEmailVerified(user)) {
+        redirect(`/acceso?error=${encodeURIComponent(getEmailVerificationErrorMessage())}`);
+      }
+
       userEmail = user.email ?? null;
 
       const [{ data: profile }, role] = await Promise.all([

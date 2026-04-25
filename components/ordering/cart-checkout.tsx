@@ -32,6 +32,14 @@ function formatPrice(value: number): string {
   }).format(value);
 }
 
+async function parseJsonSafe<T>(response: Response): Promise<T | null> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutProps) {
   const { showToast } = useToast();
   const { lines, total, updateQuantity, clearCart } = cart;
@@ -106,13 +114,22 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
     setIsSubmitting(true);
 
     const supabase = createSupabaseBrowserClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    if (!user) {
+    if (pickupType === "agendar" && !scheduledPickupAt) {
+      const msg = "Selecciona fecha y hora para el retiro agendado.";
+      setCheckoutError(msg);
+      showToast(msg, "error");
       setIsSubmitting(false);
-      window.location.href = `/acceso?redirectTo=/pedido/carrito`;
       return;
     }
+
+    // Guest checkout is allowed, but discounts/points require authenticated profile context.
+    const resolvedDiscountCodeId = user ? appliedDiscount?.codeId : undefined;
+    const resolvedDiscountAmount = user ? (appliedDiscount?.discountAmount ?? 0) : 0;
+    const resolvedPointsRedeemed = user && redeemPoints ? (userPoints ?? 0) : 0;
 
     const payload: CreateOrderRequest = {
       lines: lines.map((l) => ({
@@ -124,24 +141,32 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
       paymentMethod,
       notes,
       scheduledPickupAt: pickupType === "agendar" ? scheduledPickupAt : undefined,
-      discountCodeId: appliedDiscount?.codeId,
-      discountAmount: (appliedDiscount?.discountAmount ?? 0) + pointsDiscount,
-      pointsRedeemed: redeemPoints ? (userPoints ?? 0) : 0,
+      discountCodeId: resolvedDiscountCodeId,
+      discountAmount: resolvedDiscountAmount + (user ? pointsDiscount : 0),
+      pointsRedeemed: resolvedPointsRedeemed,
     };
 
     try {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 20_000);
+
       const response = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      window.clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const body = (await response.json()) as { error?: string };
-        throw new Error(body.error ?? "No pudimos crear tu pedido.");
+        const body = await parseJsonSafe<{ error?: string }>(response);
+        throw new Error(body?.error ?? "No pudimos crear tu pedido.");
       }
 
-      const body = (await response.json()) as CreateOrderResponse;
+      const body = await parseJsonSafe<CreateOrderResponse>(response);
+      if (!body?.orderId) {
+        throw new Error("No recibimos el identificador del pedido.");
+      }
 
       if (paymentMethod === "card_online") {
         const stripeRes = await fetch("/api/checkout/stripe", {
@@ -150,8 +175,8 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
           body: JSON.stringify({ orderId: body.orderId }),
         });
         if (stripeRes.ok) {
-          const stripeBody = (await stripeRes.json()) as { url?: string };
-          if (stripeBody.url) {
+          const stripeBody = await parseJsonSafe<{ url?: string }>(stripeRes);
+          if (stripeBody?.url) {
             clearCart();
             window.location.href = stripeBody.url;
             return;
@@ -163,7 +188,7 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
       saveLocalOrder({
         orderId: body.orderId,
         createdAt: new Date().toISOString(),
-        total,
+        total: finalTotal,
         itemCount,
       });
 
@@ -173,7 +198,9 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
       window.location.href = `/pedido/confirmacion?orderId=${encodeURIComponent(body.orderId)}`;
     } catch (error) {
       const message =
-        error instanceof Error
+        error instanceof DOMException && error.name === "AbortError"
+          ? "La creación del pedido tardó demasiado. Intenta de nuevo."
+          : error instanceof Error
           ? error.message
           : "No pudimos crear tu pedido. Intenta de nuevo.";
       setCheckoutError(message);

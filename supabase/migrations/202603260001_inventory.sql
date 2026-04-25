@@ -6,7 +6,6 @@ alter table public.menu_items
   add column if not exists track_stock boolean not null default false,
   add column if not exists stock_quantity integer default null,
   add column if not exists low_stock_alert integer not null default 5;
-
 -- 2. Function: decrement stock when an order is marked "entregado"
 create or replace function public.decrement_stock_on_delivery()
 returns trigger
@@ -28,11 +27,9 @@ begin
   return NEW;
 end;
 $$;
-
 drop trigger if exists trg_decrement_stock_on_delivery on public.orders;
 create trigger trg_decrement_stock_on_delivery
 after update on public.orders
 for each row execute function public.decrement_stock_on_delivery();
-
 -- 3. Grant
 grant update(stock_quantity, track_stock, low_stock_alert) on public.menu_items to authenticated;

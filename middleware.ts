@@ -2,10 +2,22 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getPublicEnv } from "@/lib/config/env";
+import {
+  getEmailVerificationErrorMessage,
+  isEmailVerified,
+} from "@/lib/supabase/email-verification";
 import type { Database } from "@/lib/types/database";
 
-function redirectToHome(request: NextRequest) {
-  return NextResponse.redirect(new URL("/", request.url));
+function redirectToHome(request: NextRequest, errorMessage?: string) {
+  const accessUrl = new URL("/acceso", request.url);
+  const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
+  accessUrl.searchParams.set("redirectTo", nextPath);
+
+  if (errorMessage) {
+    accessUrl.searchParams.set("error", errorMessage);
+  }
+
+  return NextResponse.redirect(accessUrl);
 }
 
 export async function middleware(request: NextRequest) {
@@ -51,10 +63,18 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (user && !isEmailVerified(user) && request.nextUrl.pathname.startsWith("/pedido")) {
+    return redirectToHome(request, getEmailVerificationErrorMessage());
+  }
+
   // Admin-only protection
   if (request.nextUrl.pathname.startsWith("/admin")) {
     if (!user) {
       return redirectToHome(request);
+    }
+
+    if (!isEmailVerified(user)) {
+      return redirectToHome(request, getEmailVerificationErrorMessage());
     }
 
     const { data: profile, error } = await supabase

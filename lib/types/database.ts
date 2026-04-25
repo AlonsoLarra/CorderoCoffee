@@ -39,6 +39,41 @@ export type Database = {
         };
         Relationships: [];
       };
+      email_verification_tokens: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          email: string;
+          token: string;
+          token_type: string;
+          used: boolean;
+          expires_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          email: string;
+          token: string;
+          token_type: string;
+          used?: boolean;
+          expires_at: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string | null;
+          email?: string;
+          token?: string;
+          token_type?: string;
+          used?: boolean;
+          expires_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       menu_categories: {
         Row: {
           id: string;
@@ -67,7 +102,7 @@ export type Database = {
       menu_items: {
         Row: {
           id: string;
-          category_id: string;
+          category_id: string | null;
           name: string;
           description: string | null;
           price: number;
@@ -82,7 +117,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          category_id: string;
+          category_id?: string | null;
           name: string;
           description?: string | null;
           price: number;
@@ -96,7 +131,7 @@ export type Database = {
           updated_at?: string;
         };
         Update: {
-          category_id?: string;
+          category_id?: string | null;
           name?: string;
           description?: string | null;
           price?: number;

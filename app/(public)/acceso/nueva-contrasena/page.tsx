@@ -1,37 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { COPY } from "@/lib/copy";
 
-export default function NuevaContrasenaPage() {
+function NuevaContrasenaFallback() {
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-md px-6 py-8 sm:px-10 sm:py-14">
+      <span className="rounded-full border border-cordero bg-cordero-card px-4 py-1 text-xs uppercase tracking-[0.2em] text-cordero-espresso opacity-80">
+        Cordero Coffee Club
+      </span>
+      <h1 className="mt-5 font-heading text-4xl text-cordero-espresso sm:text-5xl">{COPY.auth.newPasswordTitle}</h1>
+      <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6" role="status">
+        <p className="text-sm text-cordero-espresso opacity-70">Verificando enlace...</p>
+      </div>
+    </main>
+  );
+}
+
+function NuevaContrasenaContent() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  const initialError = searchParams.get("error");
+
+  const [error, setError] = useState<string | null>(initialError);
   const [success, setSuccess] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Supabase places auth tokens in the URL hash after the password reset link is clicked.
-    // We need to let it process before allowing the form to be submitted.
-    const supabase = createSupabaseBrowserClient();
-
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") {
-        setIsReady(true);
-      }
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+    if (token) {
+      setIsReady(true);
+    } else {
+      setError(initialError ?? "El enlace para restablecer tu contraseña no es válido o ya expiró.");
+      setIsReady(false);
+    }
+  }, [initialError, token]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
     const password = (formData.get("password") as string).trim();
@@ -39,24 +51,43 @@ export default function NuevaContrasenaPage() {
 
     if (password.length < 8) {
       setError(COPY.auth.newPasswordMinLength);
+      setIsSubmitting(false);
       return;
     }
 
     if (password !== confirmPassword) {
       setError(COPY.auth.newPasswordMismatch);
+      setIsSubmitting(false);
       return;
     }
 
-    const supabase = createSupabaseBrowserClient();
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    try {
+      if (!token) {
+        setError("El enlace para restablecer tu contraseña no es válido o ya expiró.");
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (updateError) {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        setError(data.error || COPY.auth.errorGeneric);
+        setIsSubmitting(false);
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => router.push("/acceso"), 3000);
+    } catch (err) {
+      console.error("Password reset error:", err);
       setError(COPY.auth.errorGeneric);
-      return;
+      setIsSubmitting(false);
     }
-
-    setSuccess(true);
-    setTimeout(() => router.push("/acceso"), 3000);
   }
 
   return (
@@ -71,13 +102,19 @@ export default function NuevaContrasenaPage() {
       <p className="mt-3 text-cordero-espresso opacity-80">{COPY.auth.newPasswordSubtitle}</p>
 
       {error ? (
-        <p className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso">
+        <p
+          className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso"
+          role="alert"
+        >
           {error}
         </p>
       ) : null}
 
       {success ? (
-        <p className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso">
+        <p
+          className="mt-6 rounded-xl border border-cordero bg-cordero-card px-4 py-3 text-sm text-cordero-espresso"
+          role="status"
+        >
           {COPY.auth.newPasswordSuccess}
         </p>
       ) : null}
@@ -92,8 +129,10 @@ export default function NuevaContrasenaPage() {
             id="password"
             name="password"
             type="password"
+            autoComplete="new-password"
             minLength={8}
             required
+            disabled={isSubmitting}
           />
 
           <label className="mt-4 block text-sm" htmlFor="confirmPassword">
@@ -104,22 +143,25 @@ export default function NuevaContrasenaPage() {
             id="confirmPassword"
             name="confirmPassword"
             type="password"
+            autoComplete="new-password"
             minLength={8}
             required
+            disabled={isSubmitting}
           />
 
           <button
-            className="mt-6 w-full rounded-full bg-cordero-espresso px-5 py-2 text-sm font-medium text-cordero-cream"
+            className="mt-6 w-full rounded-full bg-cordero-espresso px-5 py-2 text-sm font-medium text-cordero-cream disabled:opacity-50"
             type="submit"
+            disabled={isSubmitting}
           >
-            {COPY.auth.newPasswordButton}
+            {isSubmitting ? "Procesando..." : COPY.auth.newPasswordButton}
           </button>
         </form>
       ) : null}
 
-      {!success && !isReady ? (
+      {!success && !isReady && !error ? (
         <p className="mt-8 text-sm text-cordero-espresso opacity-60">
-          Verificando enlace...
+          {error ?? "Verificando enlace..."}
         </p>
       ) : null}
 
@@ -127,7 +169,20 @@ export default function NuevaContrasenaPage() {
         <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso">
           {COPY.auth.loginButton}
         </Link>
+        {!success && error ? (
+          <Link className="rounded-full border border-cordero px-5 py-2 text-sm" href="/acceso/recuperar">
+            Solicitar otro enlace
+          </Link>
+        ) : null}
       </div>
     </main>
+  );
+}
+
+export default function NuevaContrasenaPage() {
+  return (
+    <Suspense fallback={<NuevaContrasenaFallback />}>
+      <NuevaContrasenaContent />
+    </Suspense>
   );
 }
