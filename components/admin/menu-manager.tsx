@@ -743,7 +743,7 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
         onDrop={(event) => handleItemDrop(event, laneId, item.id)}
       >
         <div className="flex flex-col gap-3 p-4">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex flex-col gap-3">
             <div className="flex min-w-0 items-start gap-3">
               <span
                 aria-hidden
@@ -761,7 +761,7 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
                 {item.description ? <p className="mt-2 text-xs opacity-60">{item.description}</p> : null}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2 xl:justify-end">
+            <div className="flex flex-wrap gap-2">
               <button
                 className="rounded-full border border-cordero px-3 py-1 text-xs"
                 onClick={() => beginItemEdit(item)}
@@ -786,7 +786,7 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
             </div>
           </div>
 
-          <div className="grid gap-2 xl:grid-cols-[auto,auto,minmax(0,1fr),auto] xl:items-center">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               aria-label={`Subir ${item.name} dentro de ${laneId === UNCATEGORIZED_LANE_ID ? "Sin categorizar" : categoryNameById.get(laneId) ?? "la categoría"}`}
               className="rounded-full border border-cordero px-3 py-2 text-xs disabled:opacity-40"
@@ -807,7 +807,7 @@ export function MenuManager({ categories, items, inventoryItems }: MenuManagerPr
             </button>
             <select
               aria-label={`Mover ${item.name} a otra columna`}
-              className="rounded-xl border border-cordero bg-transparent px-3 py-2 text-xs"
+              className="min-w-0 flex-1 rounded-xl border border-cordero bg-transparent px-3 py-2 text-xs"
               onChange={(event) =>
                 setMoveTargets((prev) => ({
                   ...prev,
