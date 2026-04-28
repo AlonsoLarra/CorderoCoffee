@@ -8,6 +8,7 @@ import { InventoryManager } from "@/components/admin/inventory-manager";
 import { InventoryPanel } from "@/components/admin/inventory-panel";
 import { MenuManager } from "@/components/admin/menu-manager";
 import { OrderQueue, type AdminOrderCard } from "@/components/admin/order-queue";
+import { ProductIngredientsManager } from "@/components/admin/product-ingredients-manager";
 import { RolePermissionsManager } from "@/components/admin/role-permissions-manager";
 import { ShiftPanel } from "@/components/admin/shift-panel";
 import { StoreSettingsPanel } from "@/components/admin/store-settings-panel";
@@ -166,7 +167,13 @@ export function AdminTabs({
             </div>
             <div>
               <p className="text-sm text-cordero-espresso opacity-70">
-                Gestiona los insumos y su stock disponible. Define cuánto consume cada producto desde la pestaña Menú.
+                Define la relacion entre productos e insumos desde este bloque: crea categorias, crea productos y establece cantidades por producto.
+              </p>
+              <ProductIngredientsManager categories={categories} inventoryItems={inventoryItems} items={items} />
+            </div>
+            <div>
+              <p className="text-sm text-cordero-espresso opacity-70">
+                Gestiona el stock de insumos y revisa en que productos se usan.
               </p>
               <InventoryManager items={inventoryItems} />
             </div>
