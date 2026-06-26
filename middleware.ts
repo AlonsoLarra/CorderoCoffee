@@ -8,6 +8,8 @@ import {
 } from "@/lib/supabase/email-verification";
 import type { Database } from "@/lib/types/database";
 
+const MAINTENANCE_MODE = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
+
 function redirectToHome(request: NextRequest, errorMessage?: string) {
   const accessUrl = new URL("/acceso", request.url);
   const nextPath = `${request.nextUrl.pathname}${request.nextUrl.search}`;
@@ -21,6 +23,11 @@ function redirectToHome(request: NextRequest, errorMessage?: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  // In maintenance mode, only allow the root page and static assets
+  if (MAINTENANCE_MODE && request.nextUrl.pathname !== "/") {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
   const env = getPublicEnv();
   let response = NextResponse.next({
     request: {
