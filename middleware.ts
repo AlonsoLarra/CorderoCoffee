@@ -8,7 +8,7 @@ import {
 } from "@/lib/supabase/email-verification";
 import type { Database } from "@/lib/types/database";
 
-const MAINTENANCE_MODE = process.env.NEXT_PUBLIC_MAINTENANCE_MODE === "true";
+const MAINTENANCE_MODE = process.env.NEXT_PUBLIC_MAINTENANCE_MODE !== "false";
 
 function redirectToHome(request: NextRequest, errorMessage?: string) {
   const accessUrl = new URL("/acceso", request.url);
