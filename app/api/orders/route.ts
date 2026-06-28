@@ -5,6 +5,7 @@ import {
   getEmailVerificationErrorMessage,
   isEmailVerified,
 } from "@/lib/supabase/email-verification";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { CreateOrderRequest } from "@/lib/types/checkout";
 import type { PaymentMethod, PickupType } from "@/lib/types/domain";
@@ -75,9 +76,15 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseServerClient();
+  // Service-role client for operational reads/writes on staff-only tables
+  // (shifts, store_settings, cash_movements). This route runs server-side and
+  // authenticates the user below; customer/guest sessions cannot read these
+  // tables under RLS, which previously made the open-shift check fail for
+  // every online order (403 "No hay un turno abierto").
+  const admin = createSupabaseAdminClient();
 
   // Block orders if no shift is open
-  const { data: activeShift } = await supabase
+  const { data: activeShift } = await admin
     .from("shifts")
     .select("id, cash_sales_total, opening_cash, total_cash_drops, orders_since_threshold")
     .eq("status", "open")
@@ -100,7 +107,7 @@ export async function POST(request: Request) {
 
   // Check if cash drop is required (for cash payments)
   if (payload.paymentMethod === "cash") {
-    const { data: settingsData } = await supabase
+    const { data: settingsData } = await admin
       .from("store_settings")
       .select("key, value")
       .in("key", ["cash_drop_threshold", "max_orders_after_threshold"]);
@@ -291,7 +298,7 @@ export async function POST(request: Request) {
     const newBalance = currentBalance + orderTotal;
 
     // Check if we need to track orders past threshold
-    const { data: thresholdSetting } = await supabase
+    const { data: thresholdSetting } = await admin
       .from("store_settings")
       .select("value")
       .eq("key", "cash_drop_threshold")
@@ -299,7 +306,7 @@ export async function POST(request: Request) {
     const threshold = Number((thresholdSetting as unknown as { value: string } | null)?.value ?? 5000);
     const pastThreshold = newBalance >= threshold;
 
-    const shiftsUpdateTable = supabase.from("shifts") as unknown as {
+    const shiftsUpdateTable = admin.from("shifts") as unknown as {
       update: (v: Record<string, unknown>) => { eq: (col: string, val: string) => Promise<{ error: unknown }> };
     };
 
@@ -313,7 +320,7 @@ export async function POST(request: Request) {
       .eq("id", typedActiveShift.id);
 
     // Record cash movement
-    const movementsTable = supabase.from("cash_movements") as unknown as {
+    const movementsTable = admin.from("cash_movements") as unknown as {
       insert: (v: Record<string, unknown>) => Promise<{ error: unknown }>;
     };
     await movementsTable.insert({

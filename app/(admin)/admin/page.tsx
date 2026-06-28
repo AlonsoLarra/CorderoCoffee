@@ -126,8 +126,11 @@ export default async function AdminPage() {
     { data: rawItems },
     { data: rawInventoryItems },
   ] = await Promise.all([
-    // Active orders (not terminal)
-    supabase
+    // Active orders (not terminal). Use the admin client (cache: "no-store") so
+    // router.refresh() after a status change always re-reads fresh data — the
+    // SSR client's fetch was being data-cached, leaving the kanban stale until
+    // a full manual page reload.
+    supabaseAdmin
       .from("orders")
       .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
       .in("status", ["pendiente", "aceptado", "preparando", "listo"])
