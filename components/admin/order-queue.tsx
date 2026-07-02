@@ -83,7 +83,10 @@ function urgencyBadge(minutes: number, status: OrderStatus): { label: string; cl
 }
 
 function formatTime(dateIso: string): string {
-  return new Intl.DateTimeFormat("es-MX", { timeStyle: "short" }).format(new Date(dateIso));
+  // Pin the timezone so the server (UTC) and client (local) render the SAME
+  // string — otherwise the timestamp differs between SSR and hydration and
+  // triggers a hydration mismatch.
+  return new Intl.DateTimeFormat("es-MX", { timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(dateIso));
 }
 
 type OrderCardProps = {
@@ -99,8 +102,14 @@ type OrderCardProps = {
 };
 
 function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPending, dragging, onDragStart, onDragEnd }: OrderCardProps) {
+  // Elapsed-time is clock-relative, so it differs between the SSR render and the
+  // client hydration. Rendering it during SSR caused a hydration mismatch that
+  // broke React on the admin board and stopped router.refresh() from repainting
+  // the kanban after a status change. Compute it only after mount on the client.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const elapsedMinutes = minutesSince(order.createdAt);
-  const urgency = urgencyBadge(elapsedMinutes, order.status);
+  const urgency = mounted ? urgencyBadge(elapsedMinutes, order.status) : null;
   const actionLabel = nextTransitionLabel[order.status];
   const nextStatus = nextTransitionStatus[order.status];
 
