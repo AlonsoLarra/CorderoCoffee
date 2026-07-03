@@ -40,6 +40,18 @@ async function parseJsonSafe<T>(response: Response): Promise<T | null> {
   }
 }
 
+const PICKUP_OPTIONS: { value: PickupType; label: string }[] = [
+  { value: "ahora", label: "Ahora" },
+  { value: "agendar", label: "Agendar" },
+  { value: "al_llegar", label: "Al llegar" },
+];
+
+const PAYMENT_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "cash", label: "Efectivo" },
+  { value: "card_pending", label: "Tarjeta al retirar" },
+  { value: "card_online", label: "Tarjeta en línea" },
+];
+
 export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutProps) {
   const { showToast } = useToast();
   const { lines, total, updateQuantity, clearCart } = cart;
@@ -210,192 +222,236 @@ export function CartCheckout({ cart, onOrderSuccess, onViewMenu }: CartCheckoutP
     }
   }
 
+  if (lines.length === 0) {
+    return (
+      <p className="text-sm text-[hsl(var(--color-espresso)/0.75)]">
+        Tu carrito está vacío.{" "}
+        <Link href="/pedido" className="underline" onClick={onViewMenu}>
+          Ver menú
+        </Link>
+      </p>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <ul className="space-y-3">
-        {lines.length === 0 ? (
-          <li className="text-sm text-cordero-espresso opacity-75">
-            Tu carrito está vacío.{" "}
-            <Link href="/pedido" className="underline" onClick={onViewMenu}>
-              Ver menú
-            </Link>
-          </li>
-        ) : (
-          lines.map((line, idx) => (
-            <li
-              key={`${line.itemId}-${idx}`}
-              className="rounded-xl border border-cordero px-3 py-2"
-            >
-              <p className="text-sm text-cordero-espresso">{line.itemName}</p>
-              {line.modifiers.length > 0 ? (
-                <p className="mt-0.5 text-xs text-cordero-espresso opacity-60">
-                  {line.modifiers.map((m) => m.selectedOption).join(", ")}
-                </p>
-              ) : null}
-              <div className="mt-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(idx, line.quantity - 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cordero text-sm"
-                    aria-label="Quitar uno"
-                  >
-                    −
-                  </button>
-                  <span className="min-w-[1.25rem] text-center text-sm">{line.quantity}</span>
-                  <button
-                    type="button"
-                    onClick={() => updateQuantity(idx, line.quantity + 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full border border-cordero text-sm"
-                    aria-label="Agregar uno"
-                  >
-                    +
-                  </button>
-                </div>
-                <span className="text-sm">
-                  {formatPrice(line.unitPrice * line.quantity)}
-                </span>
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-
-      {lines.length > 0 ? (
-        <div className="space-y-3 border-t border-cordero pt-4">
-          <div>
-            <label className="block text-xs font-medium text-cordero-espresso">
-              Retiro
-            </label>
-            <select
-              value={pickupType}
-              onChange={(e) => setPickupType(e.target.value as PickupType)}
-              className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
-            >
-              <option value="ahora">Ahora</option>
-              <option value="agendar">Agendar</option>
-              <option value="al_llegar">Al llegar</option>
-            </select>
-          </div>
-
-          {pickupType === "agendar" ? (
-            <div>
-              <label className="block text-xs font-medium text-cordero-espresso">
-                Fecha y hora de retiro
-              </label>
-              <input
-                type="datetime-local"
-                value={scheduledPickupAt}
-                onChange={(e) => setScheduledPickupAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-                className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
-              />
-            </div>
-          ) : null}
-
-          <div>
-            <label className="block text-xs font-medium text-cordero-espresso">
-              Pago
-            </label>
-            <select
-              value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-              className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
-            >
-              <option value="cash">Efectivo</option>
-              <option value="card_pending">Tarjeta al retirar</option>
-              <option value="card_online">Tarjeta en línea (Stripe)</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-cordero-espresso">
-              Notas (opcional)
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Sin azúcar, leche de avena, etc."
-              rows={3}
-              className="mt-2 w-full rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
-            />
-          </div>
-
-          {/* Discount code */}
-          <div>
-            <label className="block text-xs font-medium text-cordero-espresso">Código de descuento</label>
-            {appliedDiscount ? (
-              <div className="mt-1 flex items-center justify-between rounded-xl border border-green-300 bg-green-50 px-3 py-2 text-sm">
-                <span className="text-green-700">
-                  {appliedDiscount.code} — {formatPrice(appliedDiscount.discountAmount)} de descuento
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setAppliedDiscount(null)}
-                  className="ml-2 text-xs text-green-700 underline"
-                >
-                  Quitar
-                </button>
-              </div>
-            ) : (
-              <div className="mt-1 flex gap-2">
-                <input
-                  type="text"
-                  placeholder="CODIGO"
-                  value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-                  className="flex-1 rounded-xl border border-cordero bg-transparent px-3 py-2 text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={applyDiscountCode}
-                  disabled={validatingCode || !discountCode.trim()}
-                  className="rounded-full border border-cordero px-3 py-2 text-xs text-cordero-espresso disabled:opacity-50"
-                >
-                  {validatingCode ? "..." : "Aplicar"}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Points redemption */}
-          {userPoints !== null && userPoints > 0 && (
-            <div className="flex items-center justify-between rounded-xl border border-cordero px-3 py-2">
-              <label className="flex items-center gap-2 text-sm text-cordero-espresso cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={redeemPoints}
-                  onChange={(e) => setRedeemPoints(e.target.checked)}
-                />
-                Canjear {userPoints} punto{userPoints !== 1 ? "s" : ""} ({formatPrice(Math.min(userPoints, total))} de descuento)
-              </label>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between text-sm font-medium text-cordero-espresso">
-            <span>Total estimado</span>
-            <div className="text-right">
-              {(appliedDiscount || redeemPoints) && (
-                <span className="mr-2 text-xs line-through opacity-50">{formatPrice(total)}</span>
-              )}
-              <span>{formatPrice(finalTotal)}</span>
-            </div>
-          </div>
-
-          {checkoutError ? (
-            <p className="text-xs text-cordero-espresso opacity-80">{checkoutError}</p>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={submitOrder}
-            disabled={isSubmitting}
-            className="w-full rounded-full bg-cordero-espresso px-4 py-2.5 text-sm text-cordero-cream disabled:cursor-not-allowed disabled:opacity-50"
+    <div className="space-y-5">
+      {/* Line items */}
+      <div className="rounded-[20px] bg-cordero-card px-4 shadow-cordero-card">
+        {lines.map((line, idx) => (
+          <div
+            key={`${line.itemId}-${idx}`}
+            className={`py-3.5 ${idx > 0 ? "border-t border-[hsl(var(--color-espresso)/0.08)]" : ""}`}
           >
-            {isSubmitting ? "Creando pedido..." : "Confirmar pedido"}
-          </button>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[15px] font-medium text-cordero-espresso">{line.itemName}</p>
+                {line.modifiers.length > 0 ? (
+                  <p className="mt-0.5 text-[13px] text-[hsl(var(--color-espresso)/0.6)]">
+                    {line.modifiers.map((m) => m.selectedOption).join(", ")}
+                  </p>
+                ) : null}
+              </div>
+              <span className="flex-shrink-0 text-[15px] font-semibold text-cordero-espresso">
+                {formatPrice(line.unitPrice * line.quantity)}
+              </span>
+            </div>
+            <div className="mt-2 flex items-center gap-3 rounded-full bg-[hsl(var(--color-sand)/0.5)] px-1 py-1 w-fit">
+              <button
+                type="button"
+                onClick={() => updateQuantity(idx, line.quantity - 1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-sm text-cordero-espresso"
+                aria-label="Quitar uno"
+              >
+                −
+              </button>
+              <span className="min-w-[1.25rem] text-center text-sm text-cordero-espresso">{line.quantity}</span>
+              <button
+                type="button"
+                onClick={() => updateQuantity(idx, line.quantity + 1)}
+                className="flex h-7 w-7 items-center justify-center rounded-full text-sm text-cordero-espresso"
+                aria-label="Agregar uno"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Retiro */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--color-espresso)/0.55)]">
+          Retiro
+        </p>
+        <div className="mt-2 flex rounded-full bg-[hsl(var(--color-sand)/0.6)] p-1">
+          {PICKUP_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setPickupType(opt.value)}
+              className={`flex-1 rounded-full py-2 text-[13px] font-semibold transition-colors ${
+                pickupType === opt.value
+                  ? "bg-cordero-espresso text-cordero-cream"
+                  : "text-cordero-espresso"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
+
+        {pickupType === "agendar" ? (
+          <input
+            type="datetime-local"
+            value={scheduledPickupAt}
+            onChange={(e) => setScheduledPickupAt(e.target.value)}
+            min={new Date().toISOString().slice(0, 16)}
+            className="mt-2 w-full rounded-full border border-[hsl(var(--color-espresso)/0.2)] bg-transparent px-4 py-2.5 text-sm text-cordero-espresso outline-none"
+          />
+        ) : null}
+      </div>
+
+      {/* Pago */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--color-espresso)/0.55)]">
+          Pago
+        </p>
+        <div className="mt-2 space-y-2">
+          {PAYMENT_OPTIONS.map((opt) => {
+            const isSelected = paymentMethod === opt.value;
+            return (
+              <label
+                key={opt.value}
+                className="flex cursor-pointer items-center gap-3 rounded-2xl border border-[hsl(var(--color-espresso)/0.1)] bg-cordero-card px-4 py-3"
+              >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value={opt.value}
+                  checked={isSelected}
+                  onChange={() => setPaymentMethod(opt.value)}
+                  className="sr-only"
+                />
+                <span
+                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${
+                    isSelected
+                      ? "ring-[6px] ring-inset ring-[hsl(var(--color-espresso))]"
+                      : "ring-[1.5px] ring-inset ring-[hsl(var(--color-espresso)/0.35)]"
+                  }`}
+                />
+                <span className="text-sm text-cordero-espresso">{opt.label}</span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--color-espresso)/0.55)]">
+          Notas (opcional)
+        </p>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Sin azúcar, leche de avena, etc."
+          rows={2}
+          className="mt-2 w-full rounded-2xl border border-[hsl(var(--color-espresso)/0.2)] bg-transparent px-4 py-2.5 text-sm text-cordero-espresso outline-none"
+        />
+      </div>
+
+      {/* Discount code */}
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[hsl(var(--color-espresso)/0.55)]">
+          Código de descuento
+        </p>
+        {appliedDiscount ? (
+          <div className="mt-2 flex items-center justify-between rounded-full border border-[hsl(var(--color-terracotta)/0.3)] bg-[hsl(var(--color-terracotta)/0.14)] px-4 py-2 text-sm">
+            <span className="text-[hsl(var(--color-terracotta-dark))]">
+              {appliedDiscount.code} — {formatPrice(appliedDiscount.discountAmount)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setAppliedDiscount(null)}
+              className="text-xs text-[hsl(var(--color-terracotta-dark))] underline"
+            >
+              Quitar
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2 flex gap-2">
+            <input
+              type="text"
+              placeholder="CÓDIGO"
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+              className="flex-1 rounded-full border border-[hsl(var(--color-espresso)/0.2)] bg-transparent px-4 py-2 text-sm uppercase tracking-wide text-cordero-espresso outline-none placeholder:text-[hsl(var(--color-espresso)/0.45)] placeholder:tracking-wide"
+            />
+            <button
+              type="button"
+              onClick={applyDiscountCode}
+              disabled={validatingCode || !discountCode.trim()}
+              className="btn-press rounded-full border border-[hsl(var(--color-espresso)/0.25)] px-4 py-2 text-xs font-semibold text-cordero-espresso disabled:opacity-50"
+            >
+              {validatingCode ? "..." : "Aplicar"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Points redemption */}
+      {userPoints !== null && userPoints > 0 && (
+        <label className="flex cursor-pointer items-center justify-between rounded-2xl border border-[hsl(var(--color-espresso)/0.1)] bg-cordero-card px-4 py-3">
+          <span className="flex items-center gap-2 text-sm text-cordero-espresso">
+            <input
+              type="checkbox"
+              checked={redeemPoints}
+              onChange={(e) => setRedeemPoints(e.target.checked)}
+            />
+            Canjear {userPoints} punto{userPoints !== 1 ? "s" : ""}
+          </span>
+          <span className="text-sm font-medium text-[hsl(var(--color-terracotta-dark))]">
+            −{formatPrice(Math.min(userPoints, total))}
+          </span>
+        </label>
+      )}
+
+      {/* Summary */}
+      <div className="space-y-1.5 border-t border-[hsl(var(--color-espresso)/0.12)] pt-4">
+        <div className="flex items-center justify-between text-sm text-[hsl(var(--color-espresso)/0.7)]">
+          <span>Subtotal</span>
+          <span>{formatPrice(total)}</span>
+        </div>
+        {appliedDiscount ? (
+          <div className="flex items-center justify-between text-sm text-[hsl(var(--color-terracotta-dark))]">
+            <span>Descuento ({appliedDiscount.code})</span>
+            <span>−{formatPrice(appliedDiscount.discountAmount)}</span>
+          </div>
+        ) : null}
+        {redeemPoints && pointsDiscount > 0 ? (
+          <div className="flex items-center justify-between text-sm text-[hsl(var(--color-terracotta-dark))]">
+            <span>Puntos canjeados</span>
+            <span>−{formatPrice(pointsDiscount)}</span>
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between pt-1 text-[17px] font-semibold text-cordero-espresso">
+          <span>Total</span>
+          <span>{formatPrice(finalTotal)}</span>
+        </div>
+      </div>
+
+      {checkoutError ? (
+        <p className="text-xs text-[hsl(var(--color-terracotta-dark))]">{checkoutError}</p>
       ) : null}
+
+      <button
+        type="button"
+        onClick={submitOrder}
+        disabled={isSubmitting}
+        className="btn-press w-full rounded-full bg-cordero-espresso py-4 text-[15px] font-semibold text-cordero-cream shadow-cordero-cta disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isSubmitting ? "Creando pedido…" : "Confirmar pedido"}
+      </button>
     </div>
   );
 }

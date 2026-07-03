@@ -132,14 +132,14 @@ export default async function AdminPage() {
     // a full manual page reload.
     supabaseAdmin
       .from("orders")
-      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
+      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,unit_price,modifiers,menu_items(name))")
       .in("status", ["pendiente", "aceptado", "preparando", "listo"])
       .order("created_at", { ascending: true })
       .limit(100),
     // Delivered / canceled orders from today only (current shift)
     supabaseAdmin
       .from("orders")
-      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,modifiers,menu_items(name))")
+      .select("id,status,created_at,pickup_type,payment_method,pickup_time,notes,order_items(quantity,unit_price,modifiers,menu_items(name))")
       .in("status", ["entregado", "cancelado"])
       .gte("updated_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
       .order("updated_at", { ascending: false })
@@ -158,6 +158,7 @@ export default async function AdminPage() {
 
   type RawOrderItem = {
     quantity: number;
+    unit_price: number;
     modifiers: unknown[];
     menu_items: { name: string } | null;
   };
@@ -189,6 +190,7 @@ export default async function AdminPage() {
     items: (order.order_items ?? []).map((oi) => ({
       quantity: oi.quantity,
       name: oi.menu_items?.name ?? "?",
+      unitPrice: Number(oi.unit_price ?? 0),
       modifiers: Array.isArray(oi.modifiers)
         ? (oi.modifiers as { modifierName: string; selectedOption: string }[])
         : [],

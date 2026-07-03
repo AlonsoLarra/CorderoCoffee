@@ -5,12 +5,16 @@
 :root {
   --color-cream: 42 32% 91%;
   --color-espresso: 22 38% 18%;
+  --color-espresso-hover: 22 38% 12%;
   --color-terracotta: 19 47% 47%;
+  --color-terracotta-dark: 19 47% 39%;
   --color-olive: 96 18% 40%;
   --color-sand: 35 27% 87%;
   --color-card: 42 33% 98%;
   --color-card-foreground: 22 38% 18%;
   --color-border: 34 21% 77%;
+  --color-success: #3a6943;
+  --color-success-bg: #ebf4ec;
   --radius-md: 0.75rem;
 }
 
@@ -66,10 +70,47 @@ select {
 
   .font-heading {
     font-family: var(--font-heading), serif;
+    font-weight: 500;
+  }
+
+  .font-mono-order {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   }
 
   /* iOS safe-area for fixed bottom elements (notch / home indicator) */
   .bottom-safe-6 {
     bottom: max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)));
   }
+
+  .bottom-safe-0 {
+    bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pb-safe-4 {
+    padding-bottom: max(1rem, calc(1rem + env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* Redesign shadow tokens */
+  .shadow-cordero-card {
+    box-shadow: 0 1px 2px hsl(var(--color-espresso) / 0.05);
+  }
+
+  .shadow-cordero-cta {
+    box-shadow: 0 10px 24px hsl(var(--color-espresso) / 0.3);
+  }
+
+  .shadow-cordero-halo {
+    box-shadow: 0 0 0 4px hsl(var(--color-terracotta) / 0.2);
+  }
+}
+
+/* Redesign: pressed/hover states for filled + outline controls */
+.btn-press {
+  transition: transform 120ms ease, background-color 150ms ease, opacity 150ms ease;
+}
+.btn-press:active {
+  transform: scale(0.98);
+}
+.btn-press:disabled {
+  opacity: 0.5;
 }

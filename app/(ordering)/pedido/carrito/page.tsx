@@ -9,22 +9,19 @@ export default function CartPage() {
   const cart = useCart();
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-6 py-8 sm:py-14 sm:px-10">
-      <Link
-        href="/pedido"
-        className="text-sm text-cordero-espresso underline opacity-60 hover:opacity-90"
-      >
-        ← Seguir comprando
-      </Link>
+    <main className="mx-auto min-h-screen w-full max-w-2xl px-5 py-6 pb-16 sm:py-10">
+      <div className="flex items-center gap-3">
+        <Link
+          href="/pedido"
+          aria-label="Seguir comprando"
+          className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border border-[hsl(var(--color-espresso)/0.14)] text-cordero-espresso"
+        >
+          ‹
+        </Link>
+        <h1 className="font-heading text-2xl text-cordero-espresso">Tu carrito</h1>
+      </div>
 
-      <h1 className="mt-6 font-heading text-3xl text-cordero-espresso sm:text-4xl">
-        Tu carrito
-      </h1>
-      <p className="mt-2 text-sm text-cordero-espresso opacity-75">
-        Revisa tu pedido y confirma cuando estés listo.
-      </p>
-
-      <div className="mt-8 rounded-2xl border border-cordero bg-cordero-card p-6">
+      <div className="mt-6">
         <CartCheckout cart={cart} />
       </div>
     </main>

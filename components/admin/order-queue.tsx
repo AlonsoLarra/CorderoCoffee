@@ -16,7 +16,7 @@ export type AdminOrderCard = {
   paymentMethod: PaymentMethod;
   pickupTime: string | null;
   notes: string | null;
-  items: { quantity: number; name: string; modifiers: SelectedModifier[] }[];
+  items: { quantity: number; name: string; modifiers: SelectedModifier[]; unitPrice: number }[];
 };
 
 type OrderQueueProps = {
@@ -46,7 +46,6 @@ const nextTransitionStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   listo: "entregado",
 };
 
-
 const pickupLabel: Record<PickupType, string> = {
   ahora: "Ahora",
   agendar: "Agendado",
@@ -59,27 +58,48 @@ const paymentLabel: Record<PaymentMethod, string> = {
   card_online: "Tarjeta en línea",
 };
 
-const columnConfig: { status: OrderStatus; label: string; accent: string }[] = [
-  { status: "pendiente", label: "Pendiente", accent: "border-amber-400" },
-  { status: "aceptado", label: "Aceptado", accent: "border-blue-400" },
-  { status: "preparando", label: "Preparando", accent: "border-violet-400" },
-  { status: "listo", label: "Listo para retirar", accent: "border-emerald-400" },
-  { status: "entregado", label: "Entregado", accent: "border-cordero" },
+const columnConfig: { status: OrderStatus; label: string; dotClass: string }[] = [
+  { status: "pendiente", label: "Pendiente", dotClass: "bg-[hsl(var(--color-terracotta))]" },
+  { status: "aceptado", label: "Aceptado", dotClass: "bg-[hsl(var(--color-espresso)/0.4)]" },
+  { status: "preparando", label: "Preparando", dotClass: "bg-[hsl(var(--color-terracotta))]" },
+  { status: "listo", label: "Listo", dotClass: "bg-[var(--color-success)]" },
+  { status: "entregado", label: "Entregado", dotClass: "ring-1 ring-inset ring-[hsl(var(--color-espresso)/0.4)]" },
 ];
 
 function minutesSince(dateIso: string): number {
   return Math.max(0, Math.floor((Date.now() - new Date(dateIso).getTime()) / 60000));
 }
 
-function urgencyBadge(minutes: number, status: OrderStatus): { label: string; className: string } | null {
+type TimeChip = { label: string; className: string; urgentBorder: boolean };
+
+function timeChip(minutes: number, status: OrderStatus): TimeChip | null {
   if (status === "entregado" || status === "cancelado") return null;
+  if (status === "listo") {
+    return {
+      label: `Listo · ${minutes} min`,
+      className: "bg-[var(--color-success-bg)] text-[var(--color-success)]",
+      urgentBorder: false,
+    };
+  }
   if (minutes >= 15) {
-    return { label: `${minutes} min — Urgente`, className: "bg-red-100 text-red-800 border-red-200" };
+    return {
+      label: `${minutes} min · urgente`,
+      className: "bg-[hsl(var(--color-terracotta))] text-cordero-cream",
+      urgentBorder: true,
+    };
   }
   if (minutes >= 8) {
-    return { label: `${minutes} min — Atención`, className: "bg-amber-100 text-amber-800 border-amber-200" };
+    return {
+      label: `${minutes} min`,
+      className: "bg-[hsl(var(--color-terracotta)/0.14)] text-[hsl(var(--color-terracotta-dark))]",
+      urgentBorder: false,
+    };
   }
-  return { label: `${minutes} min`, className: "bg-emerald-100 text-emerald-800 border-emerald-200" };
+  return {
+    label: `${minutes} min`,
+    className: "bg-[hsl(var(--color-sand)/0.7)] text-[hsl(var(--color-espresso)/0.65)]",
+    urgentBorder: false,
+  };
 }
 
 function formatTime(dateIso: string): string {
@@ -109,7 +129,7 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const elapsedMinutes = minutesSince(order.createdAt);
-  const urgency = mounted ? urgencyBadge(elapsedMinutes, order.status) : null;
+  const chip = mounted ? timeChip(elapsedMinutes, order.status) : null;
   const actionLabel = nextTransitionLabel[order.status];
   const nextStatus = nextTransitionStatus[order.status];
 
@@ -122,54 +142,53 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
         onDragStart?.();
       }}
       onDragEnd={() => onDragEnd?.()}
-      className={`rounded-2xl border bg-cordero-card p-4 transition-opacity border-cordero ${
-        dragging ? "opacity-40 cursor-grabbing" : "cursor-grab"
-      } ${faded && !dragging ? "opacity-50" : ""}`}
+      className={`rounded-2xl border bg-cordero-card p-4 shadow-cordero-card transition-opacity ${
+        chip?.urgentBorder ? "border-[hsl(var(--color-terracotta)/0.5)]" : "border-[hsl(var(--color-espresso)/0.08)]"
+      } ${dragging ? "opacity-40 cursor-grabbing" : "cursor-grab"} ${faded && !dragging ? "opacity-65" : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="font-heading text-base text-cordero-espresso">#{order.id.slice(0, 8)}</span>
-        {urgency ? (
-          <span className={`rounded-full border px-2 py-0.5 text-xs ${urgency.className}`}>{urgency.label}</span>
+        <span className="font-mono-order text-[13px] font-semibold text-cordero-espresso">
+          #{order.id.slice(0, 8)}
+        </span>
+        {chip ? (
+          <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${chip.className}`}>{chip.label}</span>
         ) : null}
       </div>
 
       {order.items.length > 0 ? (
-        <ul className="mt-2 space-y-1.5">
+        <ul className="mt-2.5 space-y-1">
           {order.items.map((item, i) => (
-            <li key={i}>
-              <div className="flex items-baseline gap-1.5 text-sm font-medium text-cordero-espresso">
-                <span className="min-w-[1.25rem] text-right text-xs opacity-60">{item.quantity}×</span>
-                <span>{item.name}</span>
-              </div>
+            <li key={i} className="text-[14px] font-medium text-cordero-espresso">
+              <span className="text-[hsl(var(--color-espresso)/0.55)]">{item.quantity}×</span> {item.name}
               {item.modifiers.length > 0 ? (
-                <ul className="ml-[1.75rem] mt-0.5 space-y-0.5">
-                  {item.modifiers.map((mod, j) => (
-                    <li key={j} className="text-xs text-cordero-espresso opacity-70">
-                      {mod.modifierName}: <span className="font-medium opacity-100">{mod.selectedOption}</span>
-                    </li>
-                  ))}
-                </ul>
+                <span className="text-[hsl(var(--color-espresso)/0.55)]">
+                  {" "}
+                  · {item.modifiers.map((m) => m.selectedOption).join(", ")}
+                </span>
               ) : null}
             </li>
           ))}
         </ul>
       ) : null}
 
-      <div className="mt-2 space-y-0.5 text-xs text-cordero-espresso opacity-60">
-        <p>{pickupLabel[order.pickupType]} · {paymentLabel[order.paymentMethod]}</p>
-        <p>Creado: {formatTime(order.createdAt)}</p>
-        {order.pickupTime ? <p>Retiro: {formatTime(order.pickupTime)}</p> : null}
-      </div>
+      <p className="mt-2 text-[12px] text-[hsl(var(--color-espresso)/0.55)]">
+        {pickupLabel[order.pickupType]} · {paymentLabel[order.paymentMethod]} · {formatTime(order.createdAt)}
+      </p>
+      {order.pickupTime ? (
+        <p className="text-[12px] text-[hsl(var(--color-espresso)/0.55)]">Retiro: {formatTime(order.pickupTime)}</p>
+      ) : null}
 
       {order.notes ? (
-        <p className="mt-2 rounded-lg border border-cordero px-2 py-1 text-xs">{order.notes}</p>
+        <p className="mt-2 rounded-lg border border-[hsl(var(--color-espresso)/0.1)] px-2 py-1 text-xs text-cordero-espresso">
+          {order.notes}
+        </p>
       ) : null}
 
       {!faded && order.status !== "cancelado" ? (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex items-center gap-2">
           {actionLabel && nextStatus ? (
             <button
-              className="rounded-full bg-cordero-espresso px-3 py-1 text-xs text-cordero-cream disabled:opacity-50"
+              className="btn-press flex-1 rounded-full bg-cordero-espresso px-3 py-2 text-xs font-semibold text-cordero-cream disabled:opacity-50"
               disabled={isPending}
               onClick={() => onAction(order.id, nextStatus)}
               type="button"
@@ -178,12 +197,13 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
             </button>
           ) : null}
           <button
-            className="rounded-full border border-red-300 px-3 py-1 text-xs text-red-700 hover:bg-red-50 disabled:opacity-50"
+            className="btn-press flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-[hsl(var(--color-terracotta)/0.4)] text-xs text-[hsl(var(--color-terracotta-dark))] disabled:opacity-50"
             disabled={isPending}
             onClick={() => onCancel(order.id)}
             type="button"
+            aria-label="Cancelar"
           >
-            Cancelar
+            ✕
           </button>
         </div>
       ) : null}
@@ -191,7 +211,7 @@ function OrderCardComponent({ order, faded, onAction, onCancel, onReopen, isPend
       {order.status === "cancelado" ? (
         <div className="mt-3">
           <button
-            className="rounded-full border border-cordero px-3 py-1 text-xs disabled:opacity-50"
+            className="btn-press rounded-full border border-[hsl(var(--color-espresso)/0.25)] px-3 py-1 text-xs disabled:opacity-50"
             disabled={isPending}
             onClick={() => onReopen(order.id)}
             type="button"
@@ -213,12 +233,15 @@ const allowedDropTransitions: Record<OrderStatus, OrderStatus[]> = {
   cancelado: ["pendiente"],
 };
 
+const ENTREGADO_PAGE_SIZE = 5;
+
 export function OrderQueue({ orders }: OrderQueueProps) {
   const router = useRouter();
   const { showToast } = useToast();
   const [isPending, startTransition] = useTransition();
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canceledOpen, setCanceledOpen] = useState<boolean>(false);
+  const [entregadoExpanded, setEntregadoExpanded] = useState(false);
   const [draggingOrderId, setDraggingOrderId] = useState<string | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<OrderStatus | null>(null);
 
@@ -277,13 +300,19 @@ export function OrderQueue({ orders }: OrderQueueProps) {
   const activeOrders = orders.filter((o) => o.status !== "cancelado");
 
   return (
-    <div className="mt-6 space-y-4">
-      {/* Kanban columns — horizontal scroll on small screens */}
+    <div className="mt-4 space-y-4">
+      {/* Kanban columns */}
       <div className="overflow-x-auto pb-2">
-        <div className="flex gap-4" style={{ minWidth: "fit-content" }}>
-          {columnConfig.map(({ status, label, accent }) => {
-            const columnOrders = activeOrders.filter((o) => o.status === status);
+        <div className="grid gap-3.5" style={{ gridTemplateColumns: "repeat(5, minmax(210px, 1fr))" }}>
+          {columnConfig.map(({ status, label, dotClass }) => {
+            let columnOrders = activeOrders.filter((o) => o.status === status);
             const faded = status === "entregado";
+            const isEntregado = status === "entregado";
+            const totalInColumn = columnOrders.length;
+
+            if (isEntregado && !entregadoExpanded) {
+              columnOrders = columnOrders.slice(0, ENTREGADO_PAGE_SIZE);
+            }
 
             const isDropTarget = dragOverStatus === status && draggingOrderId !== null && canDrop(draggingOrderId, status);
 
@@ -311,16 +340,17 @@ export function OrderQueue({ orders }: OrderQueueProps) {
                   void updateStatus(draggingOrderId, status);
                   setDraggingOrderId(null);
                 }}
-                className={`flex w-60 flex-shrink-0 flex-col rounded-2xl border-t-4 p-3 transition-colors ${accent} ${
-                  isDropTarget
-                    ? "bg-cordero-card/80 ring-2 ring-cordero-espresso/30"
-                    : "bg-cordero-card/40"
+                className={`flex min-w-[210px] flex-col rounded-2xl p-3 transition-colors ${
+                  isDropTarget ? "bg-[hsl(var(--color-espresso)/0.06)] ring-2 ring-[hsl(var(--color-espresso)/0.3)]" : ""
                 }`}
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <h3 className="font-heading text-sm text-cordero-espresso">{label}</h3>
-                  <span className="rounded-full bg-cordero-espresso/10 px-2 py-0.5 text-xs text-cordero-espresso">
-                    {columnOrders.length}
+                <div className="mb-3 flex items-center gap-2 px-1">
+                  <span className={`h-[9px] w-[9px] flex-shrink-0 rounded-full ${dotClass}`} />
+                  <h3 className="flex-1 text-[13px] font-semibold uppercase tracking-[0.04em] text-cordero-espresso">
+                    {label}
+                  </h3>
+                  <span className="rounded-full bg-[hsl(var(--color-espresso)/0.08)] px-2 py-0.5 text-xs text-cordero-espresso">
+                    {totalInColumn}
                   </span>
                 </div>
 
@@ -352,6 +382,15 @@ export function OrderQueue({ orders }: OrderQueueProps) {
                       />
                     ))
                   )}
+                  {isEntregado && totalInColumn > ENTREGADO_PAGE_SIZE ? (
+                    <button
+                      type="button"
+                      onClick={() => setEntregadoExpanded((v) => !v)}
+                      className="text-center text-xs text-[hsl(var(--color-espresso)/0.6)] underline"
+                    >
+                      {entregadoExpanded ? "Ver menos" : `Ver los ${totalInColumn} entregados`}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             );
@@ -361,16 +400,16 @@ export function OrderQueue({ orders }: OrderQueueProps) {
 
       {/* Collapsed canceled section */}
       {canceledOrders.length > 0 ? (
-        <div className="rounded-2xl border border-cordero bg-cordero-card/40">
+        <div className="rounded-2xl bg-[hsl(var(--color-espresso)/0.04)]">
           <button
             className="flex w-full items-center justify-between px-4 py-3 text-left"
             onClick={() => setCanceledOpen((prev) => !prev)}
             type="button"
           >
-            <span className="font-heading text-sm text-cordero-espresso opacity-70">
+            <span className="text-sm font-semibold text-[hsl(var(--color-espresso)/0.7)]">
               Cancelados ({canceledOrders.length})
             </span>
-            <span className="text-xs text-cordero-espresso opacity-50">{canceledOpen ? "▲ Ocultar" : "▼ Ver"}</span>
+            <span className="text-xs text-[hsl(var(--color-espresso)/0.5)]">{canceledOpen ? "▲ Ocultar" : "▼ Ver"}</span>
           </button>
 
           {canceledOpen ? (

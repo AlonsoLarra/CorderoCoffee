@@ -71,8 +71,8 @@ export function OrderStatusRealtime({ orderId }: OrderStatusRealtimeProps) {
   }, [orderId, router, startTransition]);
 
   return (
-    <p className="mt-2 text-xs text-cordero-espresso opacity-70">
-      {isPending ? "Actualizando estado..." : "Actualizacion en vivo activada"}
-    </p>
+    <span role="status" aria-live="polite" className="sr-only">
+      {isPending ? "Actualizando estado del pedido" : "Actualización en vivo activada"}
+    </span>
   );
 }

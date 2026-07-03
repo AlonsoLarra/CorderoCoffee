@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { useState, useRef, useEffect } from "react";
 
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
@@ -33,75 +34,83 @@ export function LoginBanner({ userEmail, profileName, rewardPoints }: LoginBanne
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showPopup]);
 
-  if (userEmail) {
-    return (
-      <div className="sticky top-0 z-40 w-full border-b border-cordero bg-cordero-card px-6 py-3 text-sm text-cordero-espresso sm:px-10">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2">
-          <p className="opacity-70">Bienvenido, {profileName ?? userEmail}</p>
-          <div className="flex items-center gap-2">
-            <NotificationBell />
-          {rewardPoints !== null && (
-            <div className="relative">
-              <button
-                ref={buttonRef}
-                onClick={() => setShowPopup((v) => !v)}
-                className="rounded-full border border-cordero px-3 py-0.5 text-xs opacity-70 transition-opacity hover:opacity-100"
-              >
-                {rewardPoints} puntos de recompensa
-              </button>
-              {showPopup && (
-                <div
-                  ref={popupRef}
-                  className="absolute right-0 top-full mt-2 w-72 rounded-xl border border-cordero bg-cordero-card p-5 shadow-lg"
-                >
-                  <h3 className="mb-2 text-sm font-bold text-cordero-espresso">
-                    ¿Cómo acumular puntos?
-                  </h3>
-                  <ul className="space-y-2 text-xs leading-relaxed text-cordero-espresso/80">
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5 text-sm">☕</span>
-                      <span>
-                        Ganas <strong>10 puntos por cada producto</strong> que pidas en tu orden.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5 text-sm">📦</span>
-                      <span>
-                        Los puntos se acreditan cuando tu pedido es <strong>entregado</strong>.
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="mt-0.5 text-sm">🎁</span>
-                      <span>
-                        Acumula puntos y accede a recompensas exclusivas próximamente.
-                      </span>
-                    </li>
-                  </ul>
-                  <p className="mt-3 border-t border-cordero pt-3 text-center text-[11px] text-cordero-espresso/50">
-                    Tus puntos: <strong>{rewardPoints}</strong>
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const firstName = profileName?.trim().split(/\s+/)[0] ?? null;
+  const greeting = firstName ? `Hola, ${firstName}` : "Hola";
 
   return (
-    <div className="sticky top-0 z-40 w-full bg-cordero-espresso px-6 py-3 text-center text-sm sm:px-10">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-center gap-3">
-        <span className="text-[11px] uppercase tracking-[0.18em] text-cordero-cream opacity-75">
-          Modo invitado: inicia sesión para guardar tu historial y ganar puntos
-        </span>
-        <Link
-          href="/acceso"
-          className="rounded-full border border-cordero-cream/40 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-cordero-cream transition-opacity duration-200 hover:opacity-80"
-        >
-          Iniciar sesión
-        </Link>
+    <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start gap-3">
+        <Image
+          src="/icono-oscuro.svg"
+          alt=""
+          width={38}
+          height={38}
+          className="mt-0.5 flex-shrink-0"
+          aria-hidden="true"
+        />
+        <div>
+          <h1 className="font-heading text-[28px] leading-tight text-cordero-espresso">{greeting}</h1>
+          <p className="mt-0.5 text-[15px] text-[hsl(var(--color-espresso)/0.6)]">¿Qué tomas hoy?</p>
+        </div>
+      </div>
+
+      <div className="flex flex-shrink-0 items-center gap-2 pt-1">
+        {userEmail ? (
+          <>
+            <NotificationBell />
+            {rewardPoints !== null && (
+              <div className="relative">
+                <button
+                  ref={buttonRef}
+                  type="button"
+                  onClick={() => setShowPopup((v) => !v)}
+                  className="btn-press flex items-center gap-1.5 rounded-full border border-[hsl(var(--color-espresso)/0.12)] bg-cordero-card px-3 py-1.5 text-xs font-medium text-cordero-espresso"
+                >
+                  <span className="h-2 w-2 rounded-full bg-[hsl(var(--color-terracotta))]" />
+                  {rewardPoints} pts
+                </button>
+                {showPopup && (
+                  <div
+                    ref={popupRef}
+                    className="absolute right-0 top-full z-30 mt-2 w-72 rounded-2xl border border-[hsl(var(--color-espresso)/0.1)] bg-cordero-card p-5 shadow-lg"
+                  >
+                    <h3 className="mb-2 text-sm font-semibold text-cordero-espresso">
+                      ¿Cómo acumular puntos?
+                    </h3>
+                    <ul className="space-y-2 text-xs leading-relaxed text-[hsl(var(--color-espresso)/0.8)]">
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-sm">☕</span>
+                        <span>
+                          Ganas <strong>10 puntos por cada producto</strong> que pidas en tu orden.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-sm">📦</span>
+                        <span>
+                          Los puntos se acreditan cuando tu pedido es <strong>entregado</strong>.
+                        </span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="mt-0.5 text-sm">🎁</span>
+                        <span>Acumula puntos y accede a recompensas exclusivas próximamente.</span>
+                      </li>
+                    </ul>
+                    <p className="mt-3 border-t border-[hsl(var(--color-espresso)/0.1)] pt-3 text-center text-[11px] text-[hsl(var(--color-espresso)/0.5)]">
+                      Tus puntos: <strong>{rewardPoints}</strong>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        ) : (
+          <Link
+            href="/acceso"
+            className="btn-press rounded-full border border-[hsl(var(--color-espresso)/0.25)] px-4 py-1.5 text-xs font-semibold text-cordero-espresso"
+          >
+            Iniciar sesión
+          </Link>
+        )}
       </div>
     </div>
   );

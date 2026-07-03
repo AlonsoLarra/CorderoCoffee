@@ -64,6 +64,7 @@ export function useCart() {
   function addLine(
     item: { id: string; name: string; price: number },
     modifiers: SelectedModifier[] = [],
+    quantity = 1,
   ) {
     setLines((current) => {
       let next: CartLine[];
@@ -74,7 +75,7 @@ export function useCart() {
         if (existing) {
           next = current.map((l) =>
             l.itemId === item.id && l.modifiers.length === 0
-              ? { ...l, quantity: l.quantity + 1 }
+              ? { ...l, quantity: l.quantity + quantity }
               : l,
           );
           if (hydrated) saveCartLines(next);
@@ -87,7 +88,7 @@ export function useCart() {
           itemId: item.id,
           itemName: item.name,
           unitPrice: item.price,
-          quantity: 1,
+          quantity,
           modifiers,
         },
       ];

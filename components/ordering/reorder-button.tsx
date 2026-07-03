@@ -25,11 +25,11 @@ export function ReorderButton({ lines }: ReorderButtonProps) {
 
   return (
     <button
-      className="rounded-full bg-cordero-espresso px-4 py-1.5 text-xs text-cordero-cream"
+      className="btn-press rounded-full bg-cordero-espresso px-4 py-1.5 text-xs font-semibold text-cordero-cream"
       onClick={handleReorder}
       type="button"
     >
-      Volver a pedir
+      Repetir pedido
     </button>
   );
 }
